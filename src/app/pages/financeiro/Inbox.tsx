@@ -12,17 +12,23 @@ export const FinanceiroInbox = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <section className="bg-card border rounded-xl p-6 space-y-4">
         <div>
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">Financeiro</p>
-          <h2 className="text-xl font-semibold">Inbox Financeiro</h2>
-          <p className="text-muted-foreground text-sm">Exposições prontas para decisão.</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Inbox Financeiro</p>
+          <h2 className="text-2xl font-semibold">Pendências de Governança</h2>
+          <p className="text-sm text-muted-foreground">Itens que requerem decisão imediata.</p>
         </div>
-      </div>
-      <div className="bg-card border rounded-lg p-4">
+        <div className="bg-muted/40 rounded-lg p-5">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Total pendente</p>
+          <p className="mt-2 text-4xl font-semibold">{pendingExposures.length}</p>
+          <p className="text-sm text-muted-foreground mt-2">Exposições aguardando avaliação</p>
+        </div>
+      </section>
+
+      <section className="bg-card border rounded-lg p-4">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-semibold">Exposições e Tarefas</h3>
-          <span className="text-sm text-muted-foreground">{pendingExposures.length} abertas</span>
+          <h3 className="font-semibold">Fila operacional</h3>
+          <span className="text-sm text-muted-foreground">Evidência detalhada</span>
         </div>
         {loadingExposures ? (
           <div className="text-muted-foreground">Carregando...</div>
@@ -32,36 +38,36 @@ export const FinanceiroInbox = () => {
           <div className="space-y-2">
             {pendingExposures.map((exp) => (
               <div key={exp.id} className="border rounded-md p-3">
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="font-medium">
-                      {exp.exposure_type === 'active' ? 'Exposição Ativa (Vendas)' : 'Exposição Passiva (Compras)'} • {exp.product || 'N/D'}
+                      {exp.exposure_type === 'active' ? 'Exposição ativa' : 'Exposição passiva'} • {exp.product || 'N/D'}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Fonte: {exp.source_type.toUpperCase()} {exp.source_id} • {exp.quantity_mt} MT
                     </p>
+                    {exp.tasks?.length ? (
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        Tarefas: {exp.tasks.map((t) => t.status).join(', ')}
+                      </div>
+                    ) : null}
                   </div>
                   <span className="text-xs px-2 py-1 rounded-full bg-slate-100 capitalize">{exp.status}</span>
                 </div>
                 <div className="flex gap-2 mt-2">
                   <button
                     onClick={() => setSelectedExposure(exp)}
-                    className="text-xs flex items-center gap-1 px-2 py-1 border rounded-md"
+                    className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground"
                   >
                     <Eye className="w-3 h-3" />
-                    Ver detalhes
+                    Detalhar
                   </button>
                 </div>
-                {exp.tasks?.length ? (
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    Tarefas: {exp.tasks.map((t) => t.status).join(', ')}
-                  </div>
-                ) : null}
               </div>
             ))}
           </div>
         )}
-      </div>
+      </section>
 
       <Dialog.Root open={!!selectedExposure} onOpenChange={() => setSelectedExposure(null)}>
         <Dialog.Portal>

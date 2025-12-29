@@ -304,39 +304,54 @@ export const FinanceiroMTM = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-6 space-y-8">
+      <section className="bg-card border rounded-xl p-6 space-y-6">
         <div>
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">Financeiro</p>
-          <h1 className="text-2xl font-semibold">Painel Financeiro</h1>
-          <p className="text-sm text-muted-foreground">Exposição, hedge e MTM em uma visão única.</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Painel Executivo</p>
+          <h1 className="text-2xl font-semibold">Risco Atual</h1>
+          <p className="text-sm text-muted-foreground">Conclusão imediata da posição consolidada.</p>
         </div>
-      </div>
 
-      <div className="grid md:grid-cols-4 gap-4">
-        <div className="bg-card border rounded-lg p-4">
-          <p className="text-sm text-muted-foreground">MTM Atual</p>
-          <h2 className="text-2xl font-bold mt-1">{latestSnapshot ? formatCurrency(latestSnapshot.mtm_value) : '-'}</h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            {latestSnapshot ? `${latestSnapshot.product || 'Commodity'} • ${latestSnapshot.period || '-'}` : 'Aguardando cálculo'}
-          </p>
+        <div className="grid lg:grid-cols-[2fr_1fr_1fr] gap-4">
+          <div className="bg-muted/40 rounded-lg p-4">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">Exposição Líquida</p>
+            <div className="mt-2 text-4xl font-semibold">{netTotal.toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</div>
+            <p className="text-sm text-muted-foreground mt-2">
+              {effectiveNetRows.length ? `${effectiveNetRows.length} buckets consolidados` : 'Aguardando dados'}
+            </p>
+          </div>
+          <div className="border rounded-lg p-4">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">MTM Atual</p>
+            <p className="mt-2 text-2xl font-semibold">{latestSnapshot ? formatCurrency(latestSnapshot.mtm_value) : '-'}</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              {latestSnapshot ? `${latestSnapshot.product || 'Commodity'} • ${latestSnapshot.period || '-'}` : 'Aguardando cálculo'}
+            </p>
+          </div>
+          <div className="border rounded-lg p-4">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">Cobertura de hedge</p>
+            <p className="mt-2 text-2xl font-semibold">{hedgedTotal.toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</p>
+            <p className="text-xs text-muted-foreground mt-2">Cobertura registrada</p>
+          </div>
         </div>
-        <div className="bg-card border rounded-lg p-4">
-          <p className="text-sm text-muted-foreground">Exposição Bruta</p>
-          <h2 className="text-2xl font-bold mt-1">{(grossActive + grossPassive).toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</h2>
-          <p className="text-xs text-muted-foreground mt-1">Ativa {grossActive.toFixed(0)} • Passiva {grossPassive.toFixed(0)}</p>
+
+        <div className="grid md:grid-cols-3 gap-4 text-sm">
+          <div className="border rounded-lg p-4">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">Exposição bruta</p>
+            <p className="mt-2 text-lg font-semibold">{(grossActive + grossPassive).toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</p>
+            <p className="text-xs text-muted-foreground mt-2">Ativa {grossActive.toFixed(0)} • Passiva {grossPassive.toFixed(0)}</p>
+          </div>
+          <div className="border rounded-lg p-4">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">Exposição ativa</p>
+            <p className="mt-2 text-lg font-semibold">{grossActive.toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</p>
+            <p className="text-xs text-muted-foreground mt-2">Vendas e recebíveis</p>
+          </div>
+          <div className="border rounded-lg p-4">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">Exposição passiva</p>
+            <p className="mt-2 text-lg font-semibold">{grossPassive.toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</p>
+            <p className="text-xs text-muted-foreground mt-2">Compras e pagamentos</p>
+          </div>
         </div>
-        <div className="bg-card border rounded-lg p-4">
-          <p className="text-sm text-muted-foreground">Hedge Aplicado</p>
-          <h2 className="text-2xl font-bold mt-1">{hedgedTotal.toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</h2>
-          <p className="text-xs text-muted-foreground mt-1">Cobertura registrada</p>
-        </div>
-        <div className="bg-card border rounded-lg p-4">
-          <p className="text-sm text-muted-foreground">Exposição Líquida</p>
-          <h2 className="text-2xl font-bold mt-1">{netTotal.toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</h2>
-          <p className="text-xs text-muted-foreground mt-1">{effectiveNetRows.length ? `${effectiveNetRows.length} buckets` : 'Aguardando dados'}</p>
-        </div>
-      </div>
+      </section>
 
       {error && <div className="bg-amber-50 text-amber-700 border border-amber-200 px-3 py-2 rounded">Não foi possível carregar agora.</div>}
 
@@ -396,7 +411,7 @@ export const FinanceiroMTM = () => {
           <button
             type="submit"
             disabled={savingPrice}
-            className="md:col-span-6 px-3 py-2 border rounded-md hover:bg-accent disabled:opacity-50"
+            className="md:col-span-6 px-3 py-2 border rounded-md text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-50"
           >
             {savingPrice ? 'Atualizando...' : 'Salvar preço'}
           </button>
@@ -485,7 +500,7 @@ export const FinanceiroMTM = () => {
           <button
             type="submit"
             disabled={savingSnapshot}
-            className="md:col-span-3 px-3 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50"
+            className="md:col-span-3 px-3 py-2 border rounded-md text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-50"
           >
             {savingSnapshot ? 'Calculando...' : 'Calcular e registrar MTM'}
           </button>
@@ -495,7 +510,7 @@ export const FinanceiroMTM = () => {
       <div className="bg-card border rounded-lg p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold">Exposição por bucket</h3>
-          <span className="text-xs text-muted-foreground">Consolidação</span>
+          <span className="text-xs text-muted-foreground">Evidência operacional</span>
         </div>
         {effectiveNetRows.length === 0 ? (
           <div className="text-muted-foreground text-sm">Sem dados de exposição.</div>
@@ -532,7 +547,7 @@ export const FinanceiroMTM = () => {
       <div className="bg-card border rounded-lg p-4 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold">Histórico MTM</h3>
-          <div className="text-sm text-muted-foreground">Filtro por commodity, período e entidade</div>
+          <div className="text-sm text-muted-foreground">Contexto temporal</div>
         </div>
         <div className="grid md:grid-cols-5 gap-3">
           <select
@@ -564,7 +579,7 @@ export const FinanceiroMTM = () => {
             className="px-3 py-2 border rounded-md"
           />
           <button
-            className="px-4 py-2 bg-muted rounded-md"
+            className="px-4 py-2 border rounded-md text-muted-foreground hover:text-foreground hover:bg-accent"
             onClick={loadSnapshots}
             disabled={loadingSnapshots}
           >
@@ -618,7 +633,7 @@ export const FinanceiroMTM = () => {
       <div className="bg-card border rounded-lg p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold">Hedges</h3>
-          <button className="px-3 py-2 border rounded-md" onClick={fetchHedges} disabled={loadingHedges}>
+          <button className="px-3 py-2 border rounded-md text-muted-foreground hover:text-foreground hover:bg-accent" onClick={fetchHedges} disabled={loadingHedges}>
             {loadingHedges ? 'Atualizando...' : 'Recarregar'}
           </button>
         </div>
