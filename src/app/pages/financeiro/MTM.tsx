@@ -500,7 +500,7 @@ export const FinanceiroMTM = () => {
           <button
             type="submit"
             disabled={savingSnapshot}
-            className="md:col-span-3 px-3 py-2 border rounded-md text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-50"
+            className="md:col-span-3 px-3 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50"
           >
             {savingSnapshot ? 'Calculando...' : 'Calcular e registrar MTM'}
           </button>
