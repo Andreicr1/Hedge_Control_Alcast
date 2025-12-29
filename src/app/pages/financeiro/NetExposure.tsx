@@ -136,8 +136,8 @@ export const NetExposure = () => {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, idx) => (
-                  <tr key={idx} className="border-b last:border-none">
+                {rows.map((row) => (
+                  <tr key={`${row.product}-${row.period}`} className="border-b last:border-none">
                     <td className="px-3 py-2">{row.product}</td>
                     <td className="px-3 py-2">{row.period}</td>
                     <td className="px-3 py-2">{row.gross_active}</td>
