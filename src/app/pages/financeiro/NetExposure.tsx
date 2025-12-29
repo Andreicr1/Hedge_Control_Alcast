@@ -7,12 +7,15 @@ export const NetExposure = () => {
   const [rows, setRows] = useState<NetExposureRow[]>([]);
   const [loading, setLoading] = useState(true);
   const totals = useMemo(() => {
+    if (loading) {
+      return { grossActive: 0, grossPassive: 0, hedgedTotal: 0, netTotal: 0 };
+    }
     const grossActive = rows.reduce((sum, row) => sum + row.gross_active, 0);
     const grossPassive = rows.reduce((sum, row) => sum + row.gross_passive, 0);
     const hedgedTotal = rows.reduce((sum, row) => sum + row.hedged, 0);
     const netTotal = rows.reduce((sum, row) => sum + row.net, 0);
     return { grossActive, grossPassive, hedgedTotal, netTotal };
-  }, [rows]);
+  }, [rows, loading]);
 
   const fallbackRows = useMemo(() => {
     if (!exposures.length) return [];
