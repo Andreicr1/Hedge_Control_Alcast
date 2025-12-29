@@ -1,0 +1,135 @@
+import {
+  CounterpartyType,
+  HedgeStatus,
+  OrderStatus,
+  PricingType,
+  RfqStatus,
+} from '../types/api';
+
+const now = new Date().toISOString();
+
+export default {
+  suppliers: [
+    { id: 1, name: 'Alcoa', code: 'ALC001', contact_email: 'contato@alcoa.com', contact_phone: '+55 11 3333-0000', active: true, created_at: now },
+    { id: 2, name: 'Novelis', code: 'NOV002', contact_email: 'sales@novelis.com', contact_phone: '+55 11 4444-0000', active: true, created_at: now },
+  ],
+  customers: [
+    { id: 1, name: 'Embraer', code: 'EMB001', contact_email: 'compras@embraer.com', contact_phone: '+55 12 0000-0000', active: true, created_at: now },
+    { id: 2, name: 'Gerdau', code: 'GER002', contact_email: 'compras@gerdau.com', contact_phone: '+55 11 1111-0000', active: true, created_at: now },
+  ],
+  purchaseOrders: [
+    {
+      id: 1,
+      po_number: 'PO-2024-001',
+      supplier_id: 1,
+      supplier: { id: 1, name: 'Alcoa', code: 'ALC001', contact_email: 'contato@alcoa.com', contact_phone: '+55 11 3333-0000', active: true, created_at: now },
+      total_quantity_mt: 1200,
+      pricing_type: PricingType.MONTHLY_AVERAGE,
+      lme_premium: 150,
+      status: OrderStatus.ACTIVE,
+      notes: 'Entrega mensal',
+      created_at: now,
+    },
+  ],
+  salesOrders: [
+    {
+      id: 1,
+      so_number: 'SO-2024-001',
+      customer_id: 1,
+      customer: { id: 1, name: 'Embraer', code: 'EMB001', contact_email: 'compras@embraer.com', contact_phone: '+55 12 0000-0000', active: true, created_at: now },
+      total_quantity_mt: 800,
+      pricing_type: PricingType.MONTHLY_AVERAGE,
+      lme_premium: 180,
+      status: OrderStatus.ACTIVE,
+      notes: 'Alumínio P1020',
+      created_at: now,
+    },
+  ],
+  counterparties: [
+    {
+      id: 1,
+      name: 'Itaú BBA',
+      type: CounterpartyType.BANK,
+      contact_name: 'Mesa Commodities',
+      contact_email: 'commodities@itau.com',
+      contact_phone: '+55 11 3708-8000',
+      active: true,
+      created_at: now,
+    },
+    {
+      id: 2,
+      name: 'XP Investimentos',
+      type: CounterpartyType.BROKER,
+      contact_name: 'Desk Derivativos',
+      contact_email: 'derivativos@xpi.com.br',
+      contact_phone: '+55 11 3003-5465',
+      active: true,
+      created_at: now,
+    },
+  ],
+  rfqs: [
+    {
+      id: 1,
+      rfq_number: 'RFQ-2024-001',
+      so_id: 1,
+      quantity_mt: 200,
+      period: '2024-02',
+      status: RfqStatus.QUOTED,
+      created_at: now,
+      counterparty_quotes: [
+        {
+          id: 1,
+          counterparty_id: 1,
+          counterparty_name: 'Itaú BBA',
+          quote_price: 2450,
+          status: 'quoted',
+          quoted_at: now,
+        },
+      ],
+    },
+  ],
+  hedges: [
+    {
+      id: 1,
+      so_id: 1,
+      counterparty_id: 1,
+      quantity_mt: 400,
+      contract_price: 2500,
+      current_market_price: 2550,
+      mtm_value: 20000,
+      period: '2024-02',
+      status: HedgeStatus.ACTIVE,
+      created_at: now,
+    },
+  ],
+  locations: [
+    { id: 1, name: 'Porto de Santos', type: 'porto', current_stock_mt: 1200, capacity_mt: 5000, active: true, created_at: now },
+    { id: 2, name: 'Armazém Guarulhos', type: 'armazem', current_stock_mt: 800, capacity_mt: 3000, active: true, created_at: now },
+  ],
+  exposures: [
+    {
+      id: 1,
+      source_type: 'so',
+      source_id: 1,
+      exposure_type: 'active',
+      quantity_mt: 800,
+      product: 'Alumínio',
+      delivery_date: '2024-02-15',
+      status: 'open',
+      created_at: now,
+      tasks: [{ id: 1, status: 'pending', created_at: now }],
+    },
+    {
+      id: 2,
+      source_type: 'po',
+      source_id: 1,
+      exposure_type: 'passive',
+      quantity_mt: 1200,
+      product: 'Alumínio',
+      delivery_date: '2024-02-20',
+      status: 'open',
+      created_at: now,
+      tasks: [{ id: 2, status: 'pending', created_at: now }],
+    },
+  ],
+};

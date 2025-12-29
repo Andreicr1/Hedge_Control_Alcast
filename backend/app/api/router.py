@@ -1,0 +1,24 @@
+from fastapi import APIRouter
+
+from app.api.routes import auth, purchase_orders, sales_orders, suppliers, customers, counterparties, rfqs, hedges, locations, health, rfq_preview, exposures, hedge_tasks, hedge_manual, exposure_links, net_exposure, mtm_snapshot, market_data, mtm
+
+api_router = APIRouter()
+api_router.include_router(health.router)
+api_router.include_router(auth.router)
+api_router.include_router(purchase_orders.router)
+api_router.include_router(sales_orders.router)
+api_router.include_router(suppliers.router)
+api_router.include_router(customers.router)
+api_router.include_router(counterparties.router)
+api_router.include_router(rfqs.router)
+api_router.include_router(rfq_preview.router)
+api_router.include_router(hedges.router)
+api_router.include_router(locations.router)
+api_router.include_router(exposures.router)
+api_router.include_router(hedge_tasks.router)
+api_router.include_router(hedge_manual.router)
+api_router.include_router(exposure_links.router)
+api_router.include_router(net_exposure.router)
+api_router.include_router(mtm_snapshot.router)
+api_router.include_router(market_data.router)
+api_router.include_router(mtm.router)

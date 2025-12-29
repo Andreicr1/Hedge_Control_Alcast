@@ -1,0 +1,171 @@
+from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app import models
+from app.schemas import SupplierCreate, SupplierRead, SupplierUpdate, KycDocumentRead, CreditCheckRead
+from app.api.deps import require_roles
+from app.config import settings
+from app.services import kyc as kyc_service
+import os
+import uuid
+
+router = APIRouter(prefix="/suppliers", tags=["suppliers"])
+
+
+@router.get("", response_model=List[SupplierRead])
+def list_suppliers(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(models.RoleName.admin, models.RoleName.compras)),
+):
+    return db.query(models.Supplier).order_by(models.Supplier.name.asc()).all()
+
+
+@router.post("", response_model=SupplierRead, status_code=status.HTTP_201_CREATED)
+def create_supplier(
+    payload: SupplierCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(models.RoleName.admin, models.RoleName.compras)),
+):
+    if db.query(models.Supplier).filter(models.Supplier.name == payload.name).first():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Supplier already exists")
+    sup = models.Supplier(
+        name=payload.name,
+        code=payload.code,
+        contact_email=payload.contact_email,
+        contact_phone=payload.contact_phone,
+        active=payload.active,
+    )
+    db.add(sup)
+    db.commit()
+    db.refresh(sup)
+    return sup
+
+
+@router.put("/{supplier_id}", response_model=SupplierRead)
+def update_supplier(
+    supplier_id: int,
+    payload: SupplierUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(models.RoleName.admin, models.RoleName.compras)),
+):
+    supplier = db.get(models.Supplier, supplier_id)
+    if not supplier:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Supplier not found")
+
+    data = payload.dict(exclude_unset=True)
+    for field, value in data.items():
+        setattr(supplier, field, value)
+
+    db.add(supplier)
+    db.commit()
+    db.refresh(supplier)
+    return supplier
+
+
+@router.delete("/{supplier_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_supplier(
+    supplier_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(models.RoleName.admin, models.RoleName.compras)),
+):
+    supplier = db.get(models.Supplier, supplier_id)
+    if not supplier:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Supplier not found")
+    db.delete(supplier)
+    db.commit()
+
+
+@router.get("/{supplier_id}/documents", response_model=List[KycDocumentRead])
+def list_supplier_documents(
+    supplier_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(models.RoleName.admin, models.RoleName.compras)),
+):
+    supplier = db.get(models.Supplier, supplier_id)
+    if not supplier:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Supplier not found")
+    return (
+        db.query(models.KycDocument)
+        .filter(
+            models.KycDocument.owner_type == models.DocumentOwnerType.supplier,
+            models.KycDocument.owner_id == supplier_id,
+        )
+        .order_by(models.KycDocument.uploaded_at.desc())
+        .all()
+    )
+
+
+@router.post("/{supplier_id}/documents", response_model=KycDocumentRead, status_code=status.HTTP_201_CREATED)
+def upload_supplier_document(
+    supplier_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(models.RoleName.admin, models.RoleName.compras)),
+):
+    supplier = db.get(models.Supplier, supplier_id)
+    if not supplier:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Supplier not found")
+
+    storage_root = os.path.abspath(settings.storage_dir)
+    os.makedirs(storage_root, exist_ok=True)
+    supplier_dir = os.path.join(storage_root, "suppliers", str(supplier_id))
+    os.makedirs(supplier_dir, exist_ok=True)
+
+    allowed_types = {"application/pdf", "image/png", "image/jpeg"}
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file type")
+    file.file.seek(0, os.SEEK_END)
+    size = file.file.tell()
+    file.file.seek(0)
+    if size > 5 * 1024 * 1024:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File too large (max 5MB)")
+
+    safe_name = os.path.basename(file.filename or "upload")
+    unique_name = f"{uuid.uuid4().hex}_{safe_name}"
+    file_path = os.path.join(supplier_dir, unique_name)
+    with open(file_path, "wb") as f:
+        f.write(file.file.read())
+
+    doc = models.KycDocument(
+        owner_type=models.DocumentOwnerType.supplier,
+        owner_id=supplier_id,
+        filename=file.filename,
+        content_type=file.content_type,
+        path=file_path,
+        metadata_json={"uploaded_by": current_user.email},
+    )
+    db.add(doc)
+    db.commit()
+    db.refresh(doc)
+    return doc
+
+
+@router.post("/{supplier_id}/kyp-check", response_model=CreditCheckRead, status_code=status.HTTP_201_CREATED)
+def run_supplier_kyp(
+    supplier_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(models.RoleName.admin, models.RoleName.compras)),
+):
+    supplier = db.get(models.Supplier, supplier_id)
+    if not supplier:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Supplier not found")
+
+    result = kyc_service.run_credit_check("supplier", supplier_id, supplier.name)
+    check = models.CreditCheck(
+        owner_type=models.DocumentOwnerType.supplier,
+        owner_id=supplier_id,
+        bureau=result.bureau,
+        score=result.score,
+        status=result.status,
+        raw_response=result.summary,
+    )
+    supplier.kyc_status = result.status
+    supplier.credit_score = result.score
+    db.add(check)
+    db.add(supplier)
+    db.commit()
+    db.refresh(check)
+    return check
