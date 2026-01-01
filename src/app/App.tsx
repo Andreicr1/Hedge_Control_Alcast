@@ -15,13 +15,12 @@ import { Signup } from './pages/Signup';
 import { Estoque } from './pages/Estoque';
 
 // Financeiro
-import { FinanceiroInbox } from './pages/financeiro/Inbox';
+import { FinanceiroDashboard } from './pages/financeiro/Dashboard';
 import { FinanceiroRFQs } from './pages/financeiro/RFQs';
 import { NovoRFQ } from './pages/financeiro/NovoRFQ';
+import { FinanceiroContratos } from './pages/financeiro/Contratos';
 import { FinanceiroContrapartes } from './pages/financeiro/Contrapartes';
-import { FinanceiroMTM } from './pages/financeiro/MTM';
 import { FinanceiroRelatorios } from './pages/financeiro/Relatorios';
-import { NetExposure } from './pages/financeiro/NetExposure';
 import { RFQDetalhe } from './pages/financeiro/RFQDetalhe';
 
 // Compras
@@ -50,15 +49,15 @@ const AppRoutes = () => {
   const defaultRouteByRole = (role?: RoleName) => {
     switch (role) {
       case RoleName.FINANCEIRO:
-        return '/financeiro/mtm';
+        return '/financeiro/dashboard';
       case RoleName.COMPRAS:
-        return '/compras/fornecedores';
+        return '/compras/pos';
       case RoleName.VENDAS:
-        return '/vendas/clientes';
+        return '/vendas/sos';
       case RoleName.ESTOQUE:
         return '/estoque';
       case RoleName.ADMIN:
-        return '/financeiro/mtm';
+        return '/financeiro/dashboard';
       default:
         return '/login';
     }
@@ -97,10 +96,12 @@ const AppRoutes = () => {
       />
       
       <Route
+        path="/financeiro/dashboard"
+        element={renderProtected(<FinanceiroDashboard />, [RoleName.FINANCEIRO, RoleName.ADMIN])}
+      />
+      <Route
         path="/financeiro/inbox"
-        element={
-          renderProtected(<FinanceiroInbox />, [RoleName.FINANCEIRO, RoleName.ADMIN])
-        }
+        element={renderProtected(<Navigate to="/financeiro/dashboard" replace />, [RoleName.FINANCEIRO, RoleName.ADMIN])}
       />
       <Route
         path="/financeiro/rfqs"
@@ -127,10 +128,12 @@ const AppRoutes = () => {
         }
       />
       <Route
+        path="/financeiro/contratos"
+        element={renderProtected(<FinanceiroContratos />, [RoleName.FINANCEIRO, RoleName.ADMIN])}
+      />
+      <Route
         path="/financeiro/mtm"
-        element={
-          renderProtected(<FinanceiroMTM />, [RoleName.FINANCEIRO, RoleName.ADMIN])
-        }
+        element={renderProtected(<Navigate to="/financeiro/dashboard" replace />, [RoleName.FINANCEIRO, RoleName.ADMIN])}
       />
       <Route
         path="/financeiro/relatorios"
@@ -140,9 +143,7 @@ const AppRoutes = () => {
       />
       <Route
         path="/financeiro/exposicao"
-        element={
-          renderProtected(<NetExposure />, [RoleName.FINANCEIRO, RoleName.ADMIN])
-        }
+        element={renderProtected(<Navigate to="/financeiro/relatorios" replace />, [RoleName.FINANCEIRO, RoleName.ADMIN])}
       />
 
       <Route

@@ -672,8 +672,8 @@ export interface RfqPreviewResponse {
 }
 
 export type ExposureType = 'active' | 'passive';
-export type ExposureStatus = 'open' | 'hedged' | 'closed';
-export type HedgeTaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+export type ExposureStatus = 'open' | 'partially_hedged' | 'hedged' | 'closed';
+export type HedgeTaskStatus = 'pending' | 'in_progress' | 'hedged' | 'completed' | 'cancelled';
 
 export interface HedgeTask {
   id: number;
