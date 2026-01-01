@@ -6,9 +6,9 @@ import {
   Package,
   Users,
   FileText,
-  TrendingUp,
   DollarSign,
-  Archive,
+  LayoutDashboard,
+  ScrollText,
   Menu,
   X,
 } from "lucide-react";
@@ -19,80 +19,7 @@ interface NavItem {
   label: string;
   to: string;
   icon: React.ReactNode;
-  roles: RoleName[];
 }
-
-const navItems: NavItem[] = [
-  {
-    label: "Dashboard Financeiro",
-    to: "/financeiro/mtm",
-    icon: <TrendingUp className="w-5 h-5" />,
-    roles: [RoleName.FINANCEIRO, RoleName.ADMIN],
-  },
-  {
-    label: "Inbox Financeiro",
-    to: "/financeiro/inbox",
-    icon: <Archive className="w-5 h-5" />,
-    roles: [RoleName.FINANCEIRO, RoleName.ADMIN],
-  },
-  {
-    label: "RFQs",
-    to: "/financeiro/rfqs",
-    icon: <FileText className="w-5 h-5" />,
-    roles: [RoleName.FINANCEIRO, RoleName.ADMIN],
-  },
-  {
-    label: "Contrapartes",
-    to: "/financeiro/contrapartes",
-    icon: <Users className="w-5 h-5" />,
-    roles: [RoleName.FINANCEIRO, RoleName.ADMIN],
-  },
-  {
-    label: "Relatórios",
-    to: "/financeiro/relatorios",
-    icon: <DollarSign className="w-5 h-5" />,
-    roles: [RoleName.FINANCEIRO, RoleName.ADMIN],
-  },
-  {
-    label: "Exposição Líquida",
-    to: "/financeiro/exposicao",
-    icon: <TrendingUp className="w-5 h-5" />,
-    roles: [RoleName.FINANCEIRO, RoleName.ADMIN],
-  },
-
-  {
-    label: "Fornecedores",
-    to: "/compras/fornecedores",
-    icon: <Users className="w-5 h-5" />,
-    roles: [RoleName.COMPRAS, RoleName.ADMIN],
-  },
-  {
-    label: "Exposição Passiva (Compras)",
-    to: "/compras/pos",
-    icon: <FileText className="w-5 h-5" />,
-    roles: [RoleName.COMPRAS, RoleName.ADMIN],
-  },
-
-  {
-    label: "Clientes",
-    to: "/vendas/clientes",
-    icon: <Users className="w-5 h-5" />,
-    roles: [RoleName.VENDAS, RoleName.ADMIN],
-  },
-  {
-    label: "Exposição Ativa (Vendas)",
-    to: "/vendas/sos",
-    icon: <FileText className="w-5 h-5" />,
-    roles: [RoleName.VENDAS, RoleName.ADMIN],
-  },
-
-  {
-    label: "Estoque",
-    to: "/estoque",
-    icon: <Package className="w-5 h-5" />,
-    roles: [RoleName.ESTOQUE, RoleName.FINANCEIRO, RoleName.COMPRAS, RoleName.VENDAS, RoleName.ADMIN],
-  },
-];
 
 export const Sidebar = () => {
   const { user } = useAuth();
@@ -102,7 +29,86 @@ export const Sidebar = () => {
   if (!user) return null;
 
   const userRole = (user.role?.name as string | undefined)?.toLowerCase() as RoleName | undefined;
-  const filteredItems = navItems.filter((item) => (userRole ? item.roles.includes(userRole) : false));
+  const effectiveRole = userRole === RoleName.ADMIN ? RoleName.FINANCEIRO : userRole;
+
+  const filteredItems: NavItem[] = (() => {
+    if (!effectiveRole) return [];
+
+    const estoqueItem: NavItem = {
+      label: "Estoque",
+      to: "/estoque",
+      icon: <Package className="w-5 h-5" />,
+    };
+
+    if (effectiveRole === RoleName.FINANCEIRO) {
+      return [
+        {
+          label: "Dashboard",
+          to: "/financeiro/dashboard",
+          icon: <LayoutDashboard className="w-5 h-5" />,
+        },
+        {
+          label: "RFQs",
+          to: "/financeiro/rfqs",
+          icon: <FileText className="w-5 h-5" />,
+        },
+        {
+          label: "Contratos",
+          to: "/financeiro/contratos",
+          icon: <ScrollText className="w-5 h-5" />,
+        },
+        {
+          label: "Contrapartes",
+          to: "/financeiro/contrapartes",
+          icon: <Users className="w-5 h-5" />,
+        },
+        {
+          label: "Relatórios",
+          to: "/financeiro/relatorios",
+          icon: <DollarSign className="w-5 h-5" />,
+        },
+        estoqueItem,
+      ];
+    }
+
+    if (effectiveRole === RoleName.COMPRAS) {
+      return [
+        {
+          label: "Purchase Orders",
+          to: "/compras/pos",
+          icon: <FileText className="w-5 h-5" />,
+        },
+        {
+          label: "Fornecedores",
+          to: "/compras/fornecedores",
+          icon: <Users className="w-5 h-5" />,
+        },
+        estoqueItem,
+      ];
+    }
+
+    if (effectiveRole === RoleName.VENDAS) {
+      return [
+        {
+          label: "Sales Orders",
+          to: "/vendas/sos",
+          icon: <FileText className="w-5 h-5" />,
+        },
+        {
+          label: "Clientes",
+          to: "/vendas/clientes",
+          icon: <Users className="w-5 h-5" />,
+        },
+        estoqueItem,
+      ];
+    }
+
+    if (effectiveRole === RoleName.ESTOQUE) {
+      return [estoqueItem];
+    }
+
+    return [];
+  })();
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">

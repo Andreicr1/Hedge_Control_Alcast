@@ -28,13 +28,13 @@ export const Login = () => {
         
         // Redirecionar baseado no role
         if (user.role?.name === RoleName.FINANCEIRO) {
-          navigate('/financeiro/inbox');
+          navigate('/financeiro/dashboard');
         } else if (user.role?.name === RoleName.COMPRAS) {
-          navigate('/compras/fornecedores');
+          navigate('/compras/pos');
         } else if (user.role?.name === RoleName.VENDAS) {
-          navigate('/vendas/clientes');
+          navigate('/vendas/sos');
         } else if (user.role?.name === RoleName.ADMIN) {
-          navigate('/financeiro/inbox'); // Admin pode acessar tudo
+          navigate('/financeiro/dashboard'); // Admin acessa o fluxo Financeiro por padrão
         } else if (user.role?.name === RoleName.ESTOQUE) {
           navigate('/estoque');
         } else {
