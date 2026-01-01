@@ -1,0 +1,44 @@
+# Python virtual env
+.venv/
+venv/
+
+# Node frontend build
+node_modules/
+dist/
+build/
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.*
+
+# Binary artifacts
+*.exe
+*.dll
+*.so
+*.bin
+*.tmp
+
+# Large docs/exports that are not code
+*.pdf
+*.docx
+*.xlsx
+*.csv
+*.png
+*.jpg
+*.jpeg
+
+# Ignore docs that cause noise
+docs/
+designs/
+figma/
+screenshots/
+
+# Ignore temporary or scratch files
+tmp/
+temp/
+.backup/
+*.bak

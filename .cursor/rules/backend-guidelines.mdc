@@ -1,0 +1,29 @@
+---
+description: "Diretrizes de arquitetura e padrão para backend FastAPI"
+globs:
+  - "backend/app/**"
+alwaysApply: false
+---
+
+# Backend — Padrões e Restrições
+
+- Toda lógica de negócio deve estar fora do controller/endpoint e centralizada em services ou domain modules.
+- Validações de entrada devem ser feitas com Pydantic nos schemas, com mensagens claras.
+- Nenhuma regra de negócio pode ser implementada diretamente em rotas sem encapsulamento.
+- Alterações no domínio financeiro devem rever:
+  - models
+  - migrations Alembic
+  - testes unitários
+- Cada mudança que altera a estrutura de dados deve vir com:
+  - Migração Alembic correspondente
+  - Explicação no commit
+- Contratos devem ser registrados em tabela dedicada (`contracts`), nunca em tabelas de RFQ.
+- Nenhuma função pode calcular MTM em rotas sem encapsulamento em service/engine dedicado.
+- Exceções devem ser logadas estruturadamente com:
+  - Trace ID
+  - Contexto suficiente para reproduzir a falha
+- Qualquer refactor deve preservar:
+  - Histórico de banco de dados
+  - Forward e reverse migrations
+- APIs expostas devem ser versionadas (ex.: `/api/v1/`)
+- CORS deve estar restrito a origens necessárias

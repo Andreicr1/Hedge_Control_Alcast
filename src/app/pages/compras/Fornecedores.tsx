@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, X, FileUp, ShieldCheck, Loader2, Files, CheckCircle2 } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
+import { toast } from 'sonner';
 import { useData } from '../../../contexts/DataContextAPI';
 import { suppliersService } from '../../../services/suppliersService';
 import { Supplier, KycDocument } from '../../../types/api';
@@ -190,7 +191,7 @@ export const ComprasFornecedores = () => {
               <div className="flex justify-between items-center mb-4">
                 <Dialog.Title className="text-lg font-semibold">Cadastrar fornecedor</Dialog.Title>
                 <Dialog.Close asChild>
-                  <button className="p-2 hover:bg-accent rounded-md">
+                  <button type="button" className="p-2 hover:bg-accent rounded-md" aria-label="Fechar">
                     <X className="w-5 h-5" />
                   </button>
                 </Dialog.Close>
@@ -218,8 +219,9 @@ export const ComprasFornecedores = () => {
                     />
                   </div>
                   <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Tipo de entidade</label>
+                    <label htmlFor="entity-type" className="block mb-1 text-sm font-semibold text-gray-700">Tipo de entidade</label>
                     <select
+                      id="entity-type"
                       value={formData.entity_type}
                       onChange={(e) => setFormData({ ...formData, entity_type: e.target.value })}
                       className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
@@ -398,8 +400,9 @@ export const ComprasFornecedores = () => {
 
                 <div className="grid md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Status KYP</label>
+                    <label htmlFor="kyc-status" className="block mb-1 text-sm font-semibold text-gray-700">Status KYP</label>
                     <select
+                      id="kyc-status"
                       value={formData.kyc_status}
                       onChange={(e) => setFormData({ ...formData, kyc_status: e.target.value })}
                       className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"

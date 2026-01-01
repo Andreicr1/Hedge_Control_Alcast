@@ -1,0 +1,41 @@
+---
+description: "Regras de segurança de dados e ambiente"
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+# Segurança e Governança de Dados
+
+## Segredos e Credenciais
+
+- Variáveis sensíveis não podem estar no código
+- Arquivos `.env*` nunca devem ser commitados
+- Configurações de credenciais devem usar vault ou secret manager
+
+## Exposição de APIs
+
+- APIs que retornam dados sensíveis devem ser autenticadas
+- Tokens e URLs não devem ser expostos em logs
+
+## Uploads e Sanitização
+
+- Upload de arquivos deve validar:
+  - Tipo de conteúdo
+  - Tamanho máximo
+  - Sanitização de nome
+- Não gravar arquivos sem sanitização em disco
+
+## CORS
+
+- CORS deve ser restrito a origens explícitas usadas pela aplicação
+- Permissões de credenciais devem ser configuradas adequadamente
+
+## Logging
+
+- Não logar secrets
+- Log de exceções deve ser estruturado
+- Cada requisição de produção deve ter:
+  - Timestamp
+  - Trace ID
+  - User ID

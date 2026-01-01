@@ -4,6 +4,18 @@ import { netExposureService, NetExposureRow } from '../../../services/netExposur
 import { mtmSnapshotsService } from '../../../services/mtmSnapshotsService';
 import { marketPricesService } from '../../../services/marketPricesService';
 import { Counterparty, Exposure, Hedge, MarketObjectType, MarketPrice, MTMSnapshot, MTMSnapshotCreate, SalesOrder } from '../../../types/api';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import { Badge } from '../../components/ui/badge';
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Separator } from '../../components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { RefreshCw, DollarSign, TrendingUp, TrendingDown, AlertCircle, Calendar } from 'lucide-react';
+import { cn } from '../../components/ui/utils';
 
 type SnapshotForm = {
   object_type: MarketObjectType;
@@ -24,7 +36,8 @@ type PriceForm = {
   fx: boolean;
 };
 
-const formatCurrency = (value?: number) => (value === undefined || value === null ? '-' : value.toLocaleString('en-US', { style: 'currency', currency: 'USD' }));
+const formatCurrency = (value?: number) =>
+  (value === undefined || value === null ? '-' : value.toLocaleString('en-US', { style: 'currency', currency: 'USD' }));
 
 const deriveExposurePeriod = (exp: Exposure) => {
   if (exp.delivery_date) return exp.delivery_date.slice(0, 7);
@@ -133,6 +146,9 @@ export const FinanceiroMTM = () => {
     }));
   }, [exposures, hedges, salesOrders]);
 
+  const effectiveNetRows = netRows.length ? netRows : fallbackNetRows;
+  const totalSnapshotMtm = snapshots.reduce((sum, s) => sum + (s.mtm_value || 0), 0);
+
   useEffect(() => {
     loadSnapshots();
     loadMarketPrices();
@@ -187,26 +203,27 @@ export const FinanceiroMTM = () => {
         setError('Selecione a entidade para calcular o MTM.');
         return;
       }
-
-      const payload: MTMSnapshotCreate = {
+      const body: MTMSnapshotCreate = {
         object_type: snapshotForm.object_type,
+        object_id: snapshotForm.object_id ? Number(snapshotForm.object_id) : undefined,
+        product: snapshotForm.product || undefined,
+        period: snapshotForm.period || undefined,
         price: Number(snapshotForm.price),
-        as_of_date: snapshotForm.as_of_date || undefined,
+        as_of_date: snapshotForm.as_of_date,
       };
-      if (snapshotForm.object_id) payload.object_id = Number(snapshotForm.object_id);
-      if (snapshotForm.product) payload.product = snapshotForm.product;
-      if (snapshotForm.period) payload.period = snapshotForm.period;
-
-      await mtmSnapshotsService.create(payload);
+      await mtmSnapshotsService.create(body);
       await loadSnapshots();
-      setSnapshotForm((prev) => ({
-        ...prev,
+      setSnapshotForm({
+        object_type: MarketObjectType.HEDGE,
+        object_id: '',
+        product: '',
+        period: '',
         price: '',
-        object_id: prev.object_type === MarketObjectType.NET ? '' : prev.object_id,
-      }));
+        as_of_date: new Date().toISOString().slice(0, 10),
+      });
     } catch (err: any) {
       console.error(err);
-      setError('Erro ao registrar snapshot de MTM.');
+      setError(err.message || 'Erro ao registrar snapshot MTM');
     } finally {
       setSavingSnapshot(false);
     }
@@ -215,468 +232,584 @@ export const FinanceiroMTM = () => {
   const handlePriceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingPrice(true);
+    setError(null);
     try {
       await marketPricesService.create({
-        source: priceForm.source || 'manual',
+        source: priceForm.source,
         symbol: priceForm.symbol,
-        contract_month: priceForm.contract_month || undefined,
+        contract_month: priceForm.contract_month,
         price: Number(priceForm.price),
         currency: priceForm.currency,
-        as_of: new Date(priceForm.as_of).toISOString(),
+        as_of: priceForm.as_of,
         fx: priceForm.fx,
       });
       await loadMarketPrices();
-      setPriceForm((prev) => ({ ...prev, price: '' }));
-    } catch (err) {
+      setPriceForm({
+        source: 'manual',
+        symbol: '',
+        contract_month: '',
+        price: '',
+        currency: 'USD',
+        as_of: new Date().toISOString().slice(0, 16),
+        fx: false,
+      });
+    } catch (err: any) {
       console.error(err);
-      setError('Erro ao registrar preço de mercado.');
+      setError(err.message || 'Erro ao registrar preço de mercado');
     } finally {
       setSavingPrice(false);
     }
   };
 
-  const latestPrice = marketPrices[0];
-  const effectiveNetRows = netRows.length ? netRows : fallbackNetRows;
-  const netTotal = effectiveNetRows.reduce((sum, row) => sum + row.net, 0);
-  const grossActive = effectiveNetRows.reduce((sum, row) => sum + row.gross_active, 0);
-  const grossPassive = effectiveNetRows.reduce((sum, row) => sum + row.gross_passive, 0);
-  const hedgedTotal = effectiveNetRows.reduce((sum, row) => sum + row.hedged, 0);
-  const totalSnapshotMtm = snapshots.reduce((sum, snap) => sum + (snap.mtm_value || 0), 0);
-
-  const renderObjectSelect = () => {
-    if (snapshotForm.object_type === MarketObjectType.HEDGE) {
-      return (
-        <select
-          required
-          value={snapshotForm.object_id}
-          onChange={(e) => {
-            const value = e.target.value;
-            setSnapshotForm((prev) => {
-              const selected = hedgeOptions.find((h) => h.id === Number(value));
-              return {
-                ...prev,
-                object_id: value,
-                product: selected?.product || prev.product,
-                period: selected?.period || prev.period,
-              };
-            });
-          }}
-          className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-        >
-          <option value="">Selecionar hedge</option>
-          {hedgeOptions.map((h) => (
-            <option key={h.id} value={h.id}>
-              {h.label}
-            </option>
-          ))}
-        </select>
-      );
-    }
-    if (snapshotForm.object_type === MarketObjectType.EXPOSURE) {
-      return (
-        <select
-          required
-          value={snapshotForm.object_id}
-          onChange={(e) => {
-            const value = e.target.value;
-            setSnapshotForm((prev) => {
-              const selected = exposureOptions.find((exp) => exp.id === Number(value));
-              return {
-                ...prev,
-                object_id: value,
-                product: selected?.product || prev.product,
-                period: selected?.period || prev.period,
-              };
-            });
-          }}
-          className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-        >
-          <option value="">Selecionar exposição</option>
-          {exposureOptions.map((exp) => (
-            <option key={exp.id} value={exp.id}>
-              {exp.label}
-            </option>
-          ))}
-        </select>
-      );
-    }
-    return null;
-  };
+  // Calculate totals
+  const totalMTM = hedges.reduce((sum, h) => sum + (h.mtm_value || 0), 0);
+  const positiveHedges = hedges.filter(h => (h.mtm_value || 0) > 0).length;
+  const negativeHedges = hedges.length - positiveHedges;
 
   return (
-    <div className="p-5 space-y-5">
-      <section className="bg-card border rounded-lg p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Risco Consolidado</p>
-            <h1 className="text-xl font-semibold">Visão geral</h1>
-          </div>
-          <span className="text-xs text-muted-foreground">{effectiveNetRows.length ? `${effectiveNetRows.length} buckets` : 'Sem consolidação'}</span>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Mark-to-Market</h1>
+          <p className="text-muted-foreground">
+            Valuation de contratos e exposições
+          </p>
         </div>
+        <Button onClick={loadSnapshots} disabled={loadingSnapshots} variant="outline">
+          <RefreshCw className={cn("h-4 w-4 mr-2", loadingSnapshots && "animate-spin")} />
+          Atualizar
+        </Button>
+      </div>
 
-        <div className="grid lg:grid-cols-[2fr_1fr_1fr] gap-3">
-          <div className="rounded-lg p-3 border bg-muted/30">
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Exposição Líquida</p>
-            <div className="mt-1 text-3xl font-semibold">{netTotal.toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</div>
-            <p className="text-xs text-muted-foreground mt-1">{effectiveNetRows.length ? 'Atualizado' : 'Nenhuma exposição registrada'}</p>
-          </div>
-          <div className="border rounded-lg p-3">
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">MTM Atual</p>
-            <p className="mt-1 text-lg font-semibold">{latestSnapshot ? formatCurrency(latestSnapshot.mtm_value) : '-'}</p>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              {latestSnapshot ? `${latestSnapshot.product || 'Commodity'} • ${latestSnapshot.period || '-'}` : 'Sem cálculo recente'}
+      {/* Error Alert */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Summary Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">MTM Total</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className={cn(
+              "text-2xl font-bold",
+              totalMTM >= 0 ? "text-green-600" : "text-red-600"
+            )}>
+              {formatCurrency(totalMTM)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {hedges.length} hedges ativos
             </p>
-          </div>
-          <div className="border rounded-lg p-3">
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Cobertura</p>
-            <p className="mt-1 text-lg font-semibold">{hedgedTotal.toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</p>
-            <p className="text-[11px] text-muted-foreground mt-1">Hedges registrados</p>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="grid md:grid-cols-3 gap-3 text-sm">
-          <div className="border rounded-lg p-3">
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Exposição bruta</p>
-            <p className="mt-1 text-base font-semibold">{(grossActive + grossPassive).toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</p>
-            <p className="text-[11px] text-muted-foreground mt-1">Ativa {grossActive.toFixed(0)} • Passiva {grossPassive.toFixed(0)}</p>
-          </div>
-          <div className="border rounded-lg p-3">
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Exposição ativa</p>
-            <p className="mt-1 text-base font-semibold">{grossActive.toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</p>
-            <p className="text-[11px] text-muted-foreground mt-1">Vendas e recebíveis</p>
-          </div>
-          <div className="border rounded-lg p-3">
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Exposição passiva</p>
-            <p className="mt-1 text-base font-semibold">{grossPassive.toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</p>
-            <p className="text-[11px] text-muted-foreground mt-1">Compras e pagamentos</p>
-          </div>
-        </div>
-      </section>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Snapshots Registrados</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{snapshots.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Total: {formatCurrency(totalSnapshotMtm)}
+            </p>
+          </CardContent>
+        </Card>
 
-      {error && <div className="bg-amber-50 text-amber-700 border border-amber-200 px-3 py-2 rounded">Não foi possível carregar no momento.</div>}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Hedges Positivos</CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{positiveHedges}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Em ganho
+            </p>
+          </CardContent>
+        </Card>
 
-      <div className="bg-card border rounded-lg p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Preços de mercado</h3>
-          <span className="text-xs text-muted-foreground">Atualização pontual</span>
-        </div>
-        <form className="grid md:grid-cols-6 gap-3" onSubmit={handlePriceSubmit}>
-          <input
-            required
-            placeholder="Fonte (ex: manual, LME)"
-            value={priceForm.source}
-            onChange={(e) => setPriceForm((prev) => ({ ...prev, source: e.target.value }))}
-            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-          />
-          <input
-            required
-            placeholder="Símbolo (ex: LME-ALU)"
-            value={priceForm.symbol}
-            onChange={(e) => setPriceForm((prev) => ({ ...prev, symbol: e.target.value }))}
-            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-          />
-          <input
-            placeholder="Período/contrato (YYYY-MM)"
-            value={priceForm.contract_month}
-            onChange={(e) => setPriceForm((prev) => ({ ...prev, contract_month: e.target.value }))}
-            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-          />
-          <input
-            required
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="Preço"
-            value={priceForm.price}
-            onChange={(e) => setPriceForm((prev) => ({ ...prev, price: e.target.value }))}
-            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-          />
-          <input
-            type="datetime-local"
-            required
-            value={priceForm.as_of}
-            onChange={(e) => setPriceForm((prev) => ({ ...prev, as_of: e.target.value }))}
-            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-          />
-          <div className="flex items-center gap-2 px-3 py-2 border rounded-md">
-            <input
-              id="fx-flag"
-              type="checkbox"
-              checked={priceForm.fx}
-              onChange={(e) => setPriceForm((prev) => ({ ...prev, fx: e.target.checked }))}
-              className="h-4 w-4"
-            />
-            <label htmlFor="fx-flag" className="text-sm">FX?</label>
-          </div>
-          <button
-            type="submit"
-            disabled={savingPrice}
-            className="md:col-span-6 h-9 border rounded-md text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
-          >
-            {savingPrice ? 'Atualizando...' : 'Salvar preço'}
-          </button>
-        </form>
-        {marketPrices.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm border rounded-md">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="text-left px-3 py-2 border-b">Símbolo</th>
-                  <th className="text-left px-3 py-2 border-b">Fonte</th>
-                  <th className="text-left px-3 py-2 border-b">Período</th>
-                  <th className="text-left px-3 py-2 border-b">Preço</th>
-                  <th className="text-left px-3 py-2 border-b">As of</th>
-                </tr>
-              </thead>
-              <tbody>
-                {marketPrices.map((mp) => (
-                  <tr key={mp.id} className="border-b last:border-none">
-                    <td className="px-3 py-2">{mp.symbol}</td>
-                    <td className="px-3 py-2">{mp.source}</td>
-                    <td className="px-3 py-2">{mp.contract_month || '-'}</td>
-                    <td className="px-3 py-2">{mp.price}</td>
-                    <td className="px-3 py-2">{new Date(mp.as_of).toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="text-sm text-muted-foreground border rounded-md p-3 bg-muted/40">Nenhum preço registrado.</div>
-        )}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Hedges Negativos</CardTitle>
+            <TrendingDown className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{negativeHedges}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Em perda
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="bg-card border rounded-lg p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">MTM</h3>
-          <span className="text-xs text-muted-foreground">Registro imutável</span>
-        </div>
-        <form className="grid md:grid-cols-3 gap-3" onSubmit={handleSnapshotSubmit}>
-          <select
-            value={snapshotForm.object_type}
-            onChange={(e) => {
-              const newType = e.target.value as MarketObjectType;
-              setSnapshotForm((prev) => ({
-                ...prev,
-                object_type: newType,
-                object_id: newType === MarketObjectType.NET ? '' : prev.object_id,
-              }));
-            }}
-            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-          >
-            <option value={MarketObjectType.HEDGE}>Hedge</option>
-            <option value={MarketObjectType.EXPOSURE}>Exposure</option>
-            <option value={MarketObjectType.NET}>Exposição Líquida</option>
-          </select>
+      {/* Tabs */}
+      <Tabs defaultValue="exposure" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="exposure">Exposição por Bucket</TabsTrigger>
+          <TabsTrigger value="snapshots">Histórico MTM</TabsTrigger>
+          <TabsTrigger value="hedges">Hedges</TabsTrigger>
+          <TabsTrigger value="register">Registrar MTM</TabsTrigger>
+          <TabsTrigger value="prices">Preços de Mercado</TabsTrigger>
+        </TabsList>
 
-          {renderObjectSelect()}
-
-          <input
-            placeholder="Commodity"
-            value={snapshotForm.product}
-            onChange={(e) => setSnapshotForm((prev) => ({ ...prev, product: e.target.value }))}
-            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-          />
-          <input
-            placeholder="Período (YYYY-MM)"
-            value={snapshotForm.period}
-            onChange={(e) => setSnapshotForm((prev) => ({ ...prev, period: e.target.value }))}
-            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-          />
-          <input
-            required
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="Preço usado"
-            value={snapshotForm.price}
-            onChange={(e) => setSnapshotForm((prev) => ({ ...prev, price: e.target.value }))}
-            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-          />
-          <input
-            type="date"
-            value={snapshotForm.as_of_date}
-            onChange={(e) => setSnapshotForm((prev) => ({ ...prev, as_of_date: e.target.value }))}
-            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-          />
-          <button
-            type="submit"
-            disabled={savingSnapshot}
-            className="md:col-span-3 h-9 border rounded-md text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
-          >
-            {savingSnapshot ? 'Registrando...' : 'Registrar MTM'}
-          </button>
-        </form>
-      </div>
-
-      <div className="bg-card border rounded-lg p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Exposição por bucket</h3>
-          <span className="text-xs text-muted-foreground">Evidência operacional</span>
-        </div>
-        {effectiveNetRows.length === 0 ? (
-          <div className="text-muted-foreground text-sm border rounded-md p-3 bg-muted/40">Nenhuma exposição registrada.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm border rounded-md">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="text-left px-3 py-2 border-b">Commodity</th>
-                  <th className="text-left px-3 py-2 border-b">Período</th>
-                  <th className="text-left px-3 py-2 border-b">Exposição Ativa</th>
-                  <th className="text-left px-3 py-2 border-b">Exposição Passiva</th>
-                  <th className="text-left px-3 py-2 border-b">Hedge Aplicado</th>
-                  <th className="text-left px-3 py-2 border-b">Exposição Líquida</th>
-                </tr>
-              </thead>
-              <tbody>
-                {effectiveNetRows.map((row, idx) => (
-                  <tr key={idx} className="border-b last:border-none">
-                    <td className="px-3 py-2">{row.product}</td>
-                    <td className="px-3 py-2">{row.period}</td>
-                    <td className="px-3 py-2">{row.gross_active}</td>
-                    <td className="px-3 py-2">{row.gross_passive}</td>
-                    <td className="px-3 py-2">{row.hedged}</td>
-                    <td className="px-3 py-2 font-semibold">{row.net}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      <div className="bg-card border rounded-lg p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Histórico MTM</h3>
-          <div className="text-sm text-muted-foreground">Contexto temporal</div>
-        </div>
-        <div className="grid md:grid-cols-5 gap-3">
-          <select
-            value={filters.object_type}
-            onChange={(e) => setFilters((prev) => ({ ...prev, object_type: e.target.value }))}
-            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-          >
-            <option value="">Tipo</option>
-            <option value={MarketObjectType.HEDGE}>Hedge</option>
-            <option value={MarketObjectType.EXPOSURE}>Exposure</option>
-            <option value={MarketObjectType.NET}>Exposição Líquida</option>
-          </select>
-          <input
-            placeholder="ID da entidade"
-            value={filters.object_id}
-            onChange={(e) => setFilters((prev) => ({ ...prev, object_id: e.target.value }))}
-            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-          />
-          <input
-            placeholder="Commodity"
-            value={filters.product}
-            onChange={(e) => setFilters((prev) => ({ ...prev, product: e.target.value }))}
-            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-          />
-          <input
-            placeholder="Período (YYYY-MM)"
-            value={filters.period}
-            onChange={(e) => setFilters((prev) => ({ ...prev, period: e.target.value }))}
-            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-          />
-          <button
-            className="px-4 h-10 border rounded-md text-sm text-foreground hover:bg-muted disabled:opacity-50"
-            onClick={loadSnapshots}
-            disabled={loadingSnapshots}
-          >
-            {loadingSnapshots ? 'Filtrando...' : 'Aplicar filtros'}
-          </button>
-        </div>
-
-        {loadingSnapshots ? (
-          <div className="text-muted-foreground">Carregando snapshots...</div>
-        ) : snapshots.length === 0 ? (
-          <div className="text-muted-foreground">Nenhum registro MTM encontrado.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm border rounded-md">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="text-left px-3 py-2 border-b">Tipo</th>
-                  <th className="text-left px-3 py-2 border-b">Entidade</th>
-                  <th className="text-left px-3 py-2 border-b">Commodity</th>
-                  <th className="text-left px-3 py-2 border-b">Período</th>
-                  <th className="text-left px-3 py-2 border-b">Preço</th>
-                  <th className="text-left px-3 py-2 border-b">Quantidade</th>
-                  <th className="text-left px-3 py-2 border-b">MTM</th>
-                  <th className="text-left px-3 py-2 border-b">As of</th>
-                  <th className="text-left px-3 py-2 border-b">Criado em</th>
-                </tr>
-              </thead>
-              <tbody>
-                {snapshots.map((snap) => (
-                  <tr key={snap.id} className="border-b last:border-none">
-                    <td className="px-3 py-2 capitalize">{snap.object_type}</td>
-                    <td className="px-3 py-2">{snap.object_id ?? '-'}</td>
-                    <td className="px-3 py-2">{snap.product || '-'}</td>
-                    <td className="px-3 py-2">{snap.period || '-'}</td>
-                    <td className="px-3 py-2">{snap.price}</td>
-                    <td className="px-3 py-2">{snap.quantity_mt}</td>
-                    <td className="px-3 py-2 font-semibold">{formatCurrency(snap.mtm_value)}</td>
-                    <td className="px-3 py-2">{snap.as_of_date}</td>
-                    <td className="px-3 py-2">{new Date(snap.created_at).toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <div className="text-sm text-muted-foreground">
-          Valor total em tela: {formatCurrency(totalSnapshotMtm)}
-        </div>
-      </div>
-
-      <div className="bg-card border rounded-lg p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Hedges</h3>
-          <button className="px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-md border" onClick={fetchHedges} disabled={loadingHedges}>
-            {loadingHedges ? 'Atualizando...' : 'Atualizar lista'}
-          </button>
-        </div>
-        {loadingHedges ? (
-          <div className="text-muted-foreground">Carregando hedges...</div>
-        ) : hedges.length === 0 ? (
-          <div className="text-muted-foreground">Nenhum hedge cadastrado.</div>
-        ) : (
-          <div className="grid md:grid-cols-2 gap-3">
-            {hedges.map((hedge) => (
-              <div key={hedge.id} className="border rounded-lg p-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-semibold">Hedge {hedge.id}</h4>
-                    <p className="text-sm text-muted-foreground">{hedgeLabel(hedge, salesOrders, counterparties)}</p>
-                  </div>
-                  <span className="text-xs px-2 py-1 rounded-full bg-slate-100 capitalize">{hedge.status}</span>
+        {/* Exposure Tab */}
+        <TabsContent value="exposure" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Exposição por Bucket</CardTitle>
+              <CardDescription>Evidência operacional consolidada</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {effectiveNetRows.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  Nenhuma exposição registrada.
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-sm mt-2">
-                  <div>
-                    <p className="text-muted-foreground">Preço contrato</p>
-                    <p>{hedge.contract_price}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Preço mercado</p>
-                    <p>{hedge.current_market_price ?? '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">MTM atual</p>
-                    <p className="font-semibold">{formatCurrency(hedge.mtm_value)}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Criado em</p>
-                    <p>{new Date(hedge.created_at).toLocaleString()}</p>
-                  </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Commodity</TableHead>
+                      <TableHead>Período</TableHead>
+                      <TableHead className="text-right">Exp. Ativa</TableHead>
+                      <TableHead className="text-right">Exp. Passiva</TableHead>
+                      <TableHead className="text-right">Hedge Aplicado</TableHead>
+                      <TableHead className="text-right">Exp. Líquida</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {effectiveNetRows.map((row, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="font-medium">{row.product}</TableCell>
+                        <TableCell>{row.period}</TableCell>
+                        <TableCell className="text-right">{row.gross_active} MT</TableCell>
+                        <TableCell className="text-right">{row.gross_passive} MT</TableCell>
+                        <TableCell className="text-right">{row.hedged} MT</TableCell>
+                        <TableCell className={cn(
+                          "text-right font-semibold",
+                          row.net > 0 ? "text-red-600" : row.net < 0 ? "text-green-600" : ""
+                        )}>
+                          {row.net} MT
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Snapshots Tab */}
+        <TabsContent value="snapshots" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Histórico MTM</CardTitle>
+                  <CardDescription>Contexto temporal de snapshots</CardDescription>
                 </div>
+                <Button onClick={loadSnapshots} disabled={loadingSnapshots} variant="outline" size="sm">
+                  {loadingSnapshots ? 'Filtrando...' : 'Aplicar Filtros'}
+                </Button>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Filters */}
+              <div className="grid md:grid-cols-5 gap-3">
+                <Select
+                  value={filters.object_type}
+                  onValueChange={(value) => setFilters(prev => ({ ...prev, object_type: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value={MarketObjectType.HEDGE}>Hedge</SelectItem>
+                    <SelectItem value={MarketObjectType.EXPOSURE}>Exposure</SelectItem>
+                    <SelectItem value={MarketObjectType.NET}>Exposição Líquida</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  placeholder="ID da entidade"
+                  value={filters.object_id}
+                  onChange={(e) => setFilters(prev => ({ ...prev, object_id: e.target.value }))}
+                />
+                <Input
+                  placeholder="Commodity"
+                  value={filters.product}
+                  onChange={(e) => setFilters(prev => ({ ...prev, product: e.target.value }))}
+                />
+                <Input
+                  placeholder="Período (YYYY-MM)"
+                  value={filters.period}
+                  onChange={(e) => setFilters(prev => ({ ...prev, period: e.target.value }))}
+                />
+              </div>
+
+              {/* Table */}
+              {loadingSnapshots ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  Carregando snapshots...
+                </div>
+              ) : snapshots.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  Nenhum registro MTM encontrado.
+                </div>
+              ) : (
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Entidade</TableHead>
+                        <TableHead>Commodity</TableHead>
+                        <TableHead>Período</TableHead>
+                        <TableHead className="text-right">Preço</TableHead>
+                        <TableHead className="text-right">Quantidade</TableHead>
+                        <TableHead className="text-right">MTM</TableHead>
+                        <TableHead>As of</TableHead>
+                        <TableHead>Criado em</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {snapshots.map((snap) => (
+                        <TableRow key={snap.id}>
+                          <TableCell>
+                            <Badge variant="outline" className="capitalize">{snap.object_type}</Badge>
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">{snap.object_id ?? '-'}</TableCell>
+                          <TableCell>{snap.product || '-'}</TableCell>
+                          <TableCell>{snap.period || '-'}</TableCell>
+                          <TableCell className="text-right font-mono">${snap.price}</TableCell>
+                          <TableCell className="text-right">{snap.quantity_mt} MT</TableCell>
+                          <TableCell className={cn(
+                            "text-right font-bold",
+                            (snap.mtm_value || 0) >= 0 ? "text-green-600" : "text-red-600"
+                          )}>
+                            {formatCurrency(snap.mtm_value)}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{snap.as_of_date}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {new Date(snap.created_at).toLocaleDateString('pt-BR')}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  <div className="text-sm text-muted-foreground text-right">
+                    Valor total em tela: {formatCurrency(totalSnapshotMtm)}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Hedges Tab */}
+        <TabsContent value="hedges" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Hedges Ativos</CardTitle>
+                  <CardDescription>Posições de hedge registradas</CardDescription>
+                </div>
+                <Button onClick={fetchHedges} disabled={loadingHedges} variant="outline" size="sm">
+                  {loadingHedges ? 'Atualizando...' : 'Atualizar Lista'}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loadingHedges ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  Carregando hedges...
+                </div>
+              ) : hedges.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  Nenhum hedge cadastrado.
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-2 gap-4">
+                  {hedges.map((hedge) => (
+                    <Card key={hedge.id}>
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle className="text-base">Hedge #{hedge.id}</CardTitle>
+                            <CardDescription className="text-xs">
+                              {hedgeLabel(hedge, salesOrders, counterparties)}
+                            </CardDescription>
+                          </div>
+                          <Badge variant="outline" className="capitalize">{hedge.status}</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Preço Contrato</p>
+                            <p className="font-semibold">${hedge.contract_price}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Preço Mercado</p>
+                            <p className="font-semibold">${hedge.current_market_price ?? '-'}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <p className="text-xs text-muted-foreground">MTM Atual</p>
+                            <p className={cn(
+                              "text-lg font-bold",
+                              (hedge.mtm_value || 0) >= 0 ? "text-green-600" : "text-red-600"
+                            )}>
+                              {formatCurrency(hedge.mtm_value)}
+                            </p>
+                          </div>
+                          <div className="col-span-2">
+                            <p className="text-xs text-muted-foreground">Criado em</p>
+                            <p className="text-sm">{new Date(hedge.created_at).toLocaleString('pt-BR')}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Register MTM Tab */}
+        <TabsContent value="register" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Registrar Snapshot MTM</CardTitle>
+              <CardDescription>Criar novo registro de mark-to-market</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSnapshotSubmit} className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="object_type">Tipo de Objeto *</Label>
+                    <Select
+                      value={snapshotForm.object_type}
+                      onValueChange={(value: MarketObjectType) =>
+                        setSnapshotForm(prev => ({ ...prev, object_type: value, object_id: '' }))
+                      }
+                    >
+                      <SelectTrigger id="object_type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={MarketObjectType.HEDGE}>Hedge</SelectItem>
+                        <SelectItem value={MarketObjectType.EXPOSURE}>Exposure</SelectItem>
+                        <SelectItem value={MarketObjectType.NET}>Exposição Líquida</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {(snapshotForm.object_type === MarketObjectType.HEDGE ||
+                    snapshotForm.object_type === MarketObjectType.EXPOSURE) && (
+                    <div className="space-y-2">
+                      <Label htmlFor="object_id">Entidade *</Label>
+                      <Select
+                        value={snapshotForm.object_id}
+                        onValueChange={(value) => {
+                          const opts = snapshotForm.object_type === MarketObjectType.HEDGE ? hedgeOptions : exposureOptions;
+                          const selected = opts.find(o => String(o.id) === value);
+                          setSnapshotForm(prev => ({
+                            ...prev,
+                            object_id: value,
+                            product: selected?.product || '',
+                            period: selected?.period || '',
+                          }));
+                        }}
+                      >
+                        <SelectTrigger id="object_id">
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(snapshotForm.object_type === MarketObjectType.HEDGE ? hedgeOptions : exposureOptions).map((opt) => (
+                            <SelectItem key={opt.id} value={String(opt.id)}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {snapshotForm.object_type === MarketObjectType.NET && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="product">Commodity *</Label>
+                        <Input
+                          id="product"
+                          value={snapshotForm.product}
+                          onChange={(e) => setSnapshotForm(prev => ({ ...prev, product: e.target.value }))}
+                          placeholder="Aluminum"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="period">Período *</Label>
+                        <Input
+                          id="period"
+                          value={snapshotForm.period}
+                          onChange={(e) => setSnapshotForm(prev => ({ ...prev, period: e.target.value }))}
+                          placeholder="2026-04"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="price">Preço de Mercado *</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      value={snapshotForm.price}
+                      onChange={(e) => setSnapshotForm(prev => ({ ...prev, price: e.target.value }))}
+                      placeholder="2500.00"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="as_of_date">Data de Referência *</Label>
+                    <Input
+                      id="as_of_date"
+                      type="date"
+                      value={snapshotForm.as_of_date}
+                      onChange={(e) => setSnapshotForm(prev => ({ ...prev, as_of_date: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <Button type="submit" disabled={savingSnapshot} className="w-full">
+                  {savingSnapshot ? 'Registrando...' : 'Registrar Snapshot MTM'}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Market Prices Tab */}
+        <TabsContent value="prices" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Registrar Preço de Mercado</CardTitle>
+              <CardDescription>Adicionar cotação manual</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handlePriceSubmit} className="space-y-4">
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="symbol">Símbolo *</Label>
+                    <Input
+                      id="symbol"
+                      value={priceForm.symbol}
+                      onChange={(e) => setPriceForm(prev => ({ ...prev, symbol: e.target.value }))}
+                      placeholder="AL"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="contract_month">Contrato *</Label>
+                    <Input
+                      id="contract_month"
+                      value={priceForm.contract_month}
+                      onChange={(e) => setPriceForm(prev => ({ ...prev, contract_month: e.target.value }))}
+                      placeholder="2026-04"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="market_price">Preço *</Label>
+                    <Input
+                      id="market_price"
+                      type="number"
+                      step="0.01"
+                      value={priceForm.price}
+                      onChange={(e) => setPriceForm(prev => ({ ...prev, price: e.target.value }))}
+                      placeholder="2500.00"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="currency">Moeda</Label>
+                    <Select
+                      value={priceForm.currency}
+                      onValueChange={(value) => setPriceForm(prev => ({ ...prev, currency: value }))}
+                    >
+                      <SelectTrigger id="currency">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="USD">USD</SelectItem>
+                        <SelectItem value="BRL">BRL</SelectItem>
+                        <SelectItem value="EUR">EUR</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="as_of_price">Data/Hora *</Label>
+                    <Input
+                      id="as_of_price"
+                      type="datetime-local"
+                      value={priceForm.as_of}
+                      onChange={(e) => setPriceForm(prev => ({ ...prev, as_of: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <Button type="submit" disabled={savingPrice} className="w-full">
+                  {savingPrice ? 'Registrando...' : 'Registrar Preço de Mercado'}
+                </Button>
+              </form>
+
+              {marketPrices.length > 0 && (
+                <>
+                  <Separator className="my-6" />
+                  <div>
+                    <h4 className="font-semibold mb-3">Últimos Preços Registrados</h4>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Símbolo</TableHead>
+                          <TableHead>Contrato</TableHead>
+                          <TableHead className="text-right">Preço</TableHead>
+                          <TableHead>Moeda</TableHead>
+                          <TableHead>Data</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {marketPrices.map((price) => (
+                          <TableRow key={price.id}>
+                            <TableCell className="font-medium">{price.symbol}</TableCell>
+                            <TableCell>{price.contract_month}</TableCell>
+                            <TableCell className="text-right font-mono">{price.price}</TableCell>
+                            <TableCell>{price.currency}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {new Date(price.as_of).toLocaleString('pt-BR')}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

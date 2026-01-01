@@ -1,0 +1,54 @@
+---
+description: "Diretrizes de consistência e UX para frontend React"
+globs:
+  - "frontend/src/**"
+alwaysApply: false
+---
+
+# Frontend — UX, Navegação e Consistência
+
+## Navegação por Perfil
+
+- O sistema deve ter menus e acesso **exclusivos por perfil**:
+  - Compras
+    - Purchase Orders
+    - Fornecedores
+    - Estoque
+  - Vendas
+    - Sales Orders
+    - Clientes
+    - Estoque
+  - Financeiro
+    - Dashboard
+    - RFQs
+    - Contratos
+    - Contrapartes
+    - Relatórios
+    - Estoque
+- O termo “MTM” NÃO deve ser um menu principal; ele é uma parte do Dashboard Financeiro.
+- A nomenclatura na UI deve refletir terminologia de negócio:
+  - “Contrato”
+  - “Exposição Ativa/Passiva”
+  - “Ranking de cotação”
+  - “Decisão de hedge”
+- Textos explicativos longos devem ser substituídos por:
+  - Tooltips
+  - Helpers inline
+
+## Tabelas e Listagens
+
+- Tabelas de lista devem ter:
+  - Ordenação por colunas relevantes
+  - Filtros por data, contraparte, período, status
+  - Paginação
+- Botões devem ser pequenos, dimensionados e não chamativos
+- Contraste tipográfico deve ser consistente (acesso corporativo)
+
+## Formularios e Campos
+
+- Não criar dropdowns ilimitados automaticamente
+- Campos de texto livre são preferíveis para:
+  - País
+  - Jurisdição
+- Erros de formulário devem ser mostrados inline
+- Validações visualmente claras e não bloqueantes

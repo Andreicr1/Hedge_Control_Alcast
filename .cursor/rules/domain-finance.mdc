@@ -1,0 +1,29 @@
+---
+description: "Domínio financeiro essencial e não-negociável"
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+# Regras Fundamentais do Domínio Financeiro
+
+- RFQ (Request for Quote) NÃO é um contrato.
+- RFQ NÃO representa uma posição financeira nem MTM.
+- MTM e cálculos de valor financeiro SÓ podem ser feitos em **Contracts**.
+- Nenhum cálculo de MTM pode ocorrer em:
+  - RFQ
+  - Quotes
+  - Trades pendentes sem contrato
+- Um **Contrato** representa **exatamente UM trade (1:1)**.
+- Um trade sempre tem **duas pernas (legs)**:
+  - Uma BUY (compra)
+  - Uma SELL (venda)
+- Cada trade do RFQ que for definido como vencedor deve gerar exatamente um Contract.
+- Um Deal agrega um ou mais Contracts para fins de:
+  - exposição líquida
+  - cálculo consolidado de P&L
+  - relatórios financeiros
+- RFQ deve sempre pertencer a exatamente uma SalesOrder (SO) ou PurchaseOrder (PO).
+- A cadeia de propriedade obrigatória é:
+  Deal → SO → PO → RFQ → Contract → MTM/Cashflow/Settlement.
+- Nenhum termo financeiro deve ser renomeado de forma ambígua.

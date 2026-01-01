@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, Send, Eye, X } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
+import { toast } from 'sonner';
 import { useData } from '../../../contexts/DataContextAPI';
 import { purchaseOrdersService } from '../../../services/purchaseOrdersService';
 import { OrderStatus, PricingType } from '../../../types/api';
@@ -142,7 +143,7 @@ export const ComprasPOs = () => {
               <div className="flex justify-between items-center mb-4">
                 <Dialog.Title className="text-lg font-semibold">Cadastrar Purchase Order</Dialog.Title>
                 <Dialog.Close asChild>
-                  <button className="p-2 hover:bg-accent rounded-md">
+                  <button type="button" className="p-2 hover:bg-accent rounded-md" aria-label="Fechar">
                     <X className="w-5 h-5" />
                   </button>
                 </Dialog.Close>
@@ -151,8 +152,9 @@ export const ComprasPOs = () => {
               <form className="space-y-4" onSubmit={handleCreate}>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Fornecedor *</label>
+                    <label htmlFor="supplier-select" className="block mb-1 text-sm font-semibold text-gray-700">Fornecedor *</label>
                     <select
+                      id="supplier-select"
                       required
                       value={formData.supplier_id}
                       onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value })}
@@ -188,6 +190,7 @@ export const ComprasPOs = () => {
                       value={formData.total_quantity_mt}
                       onChange={(e) => setFormData({ ...formData, total_quantity_mt: Number(e.target.value) })}
                       className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="0"
                     />
                   </div>
                   <div>
@@ -196,6 +199,7 @@ export const ComprasPOs = () => {
                       value={formData.unit}
                       onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                       className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="MT"
                     />
                   </div>
                   <div>
@@ -206,14 +210,16 @@ export const ComprasPOs = () => {
                       value={formData.unit_price}
                       onChange={(e) => setFormData({ ...formData, unit_price: Number(e.target.value) })}
                       className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="0.00"
                     />
                   </div>
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Tipo de Precificação</label>
+                    <label htmlFor="pricing-type" className="block mb-1 text-sm font-semibold text-gray-700">Tipo de Precificação</label>
                     <select
+                      id="pricing-type"
                       value={formData.pricing_type}
                       onChange={(e) => setFormData({ ...formData, pricing_type: e.target.value as PricingType })}
                       className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
@@ -241,6 +247,7 @@ export const ComprasPOs = () => {
                       value={formData.lme_premium}
                       onChange={(e) => setFormData({ ...formData, lme_premium: Number(e.target.value) })}
                       className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="0.00"
                     />
                   </div>
                 </div>
@@ -254,6 +261,7 @@ export const ComprasPOs = () => {
                       value={formData.premium}
                       onChange={(e) => setFormData({ ...formData, premium: Number(e.target.value) })}
                       className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="0.00"
                     />
                   </div>
                   <div>
@@ -262,6 +270,7 @@ export const ComprasPOs = () => {
                       value={formData.reference_price}
                       onChange={(e) => setFormData({ ...formData, reference_price: e.target.value })}
                       className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="Referência de preço"
                     />
                   </div>
                   <div>
@@ -271,6 +280,7 @@ export const ComprasPOs = () => {
                       value={formData.fixing_deadline}
                       onChange={(e) => setFormData({ ...formData, fixing_deadline: e.target.value })}
                       className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      title="Data limite para fixação"
                     />
                   </div>
                 </div>
@@ -283,6 +293,7 @@ export const ComprasPOs = () => {
                       value={formData.expected_delivery_date}
                       onChange={(e) => setFormData({ ...formData, expected_delivery_date: e.target.value })}
                       className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      title="Data prevista para entrega"
                     />
                   </div>
                   <div>
@@ -291,6 +302,7 @@ export const ComprasPOs = () => {
                       value={formData.location}
                       onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                       className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="Local de entrega"
                     />
                   </div>
                   <div>
@@ -301,6 +313,7 @@ export const ComprasPOs = () => {
                       value={formData.avg_cost}
                       onChange={(e) => setFormData({ ...formData, avg_cost: Number(e.target.value) })}
                       className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="0.00"
                     />
                   </div>
                 </div>
@@ -312,6 +325,7 @@ export const ComprasPOs = () => {
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
                     rows={3}
+                    placeholder="Observações adicionais"
                   />
                 </div>
 
@@ -405,7 +419,7 @@ export const ComprasPOs = () => {
                     <p className="text-muted-foreground">{selectedPO.po_number}</p>
                   </div>
                   <Dialog.Close asChild>
-                    <button className="p-2 hover:bg-accent rounded-md">
+                    <button type="button" className="p-2 hover:bg-accent rounded-md" aria-label="Fechar">
                       <X className="w-5 h-5" />
                     </button>
                   </Dialog.Close>

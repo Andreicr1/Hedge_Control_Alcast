@@ -1,0 +1,26 @@
+---
+description: "Padrões de estilo de código para Python e TS/JS"
+globs:
+  - "**/*.py"
+  - "**/*.tsx"
+  - "**/*.ts"
+alwaysApply: false
+---
+
+# Estilo de Código
+
+## Python
+
+- Usar 4 espaços de indentação
+- Imports devem ser agrupados:
+  1. padrões Python
+  2. libs externas
+  3. imports internos do projeto
+
+## TS/JS / React
+
+- Componentes devem usar PascalCase
+- Hooks devem usar camelCase prefixado com "use"
+- CSS / Tailwind deve ser:
+  - classes utilitárias mínimas
+  - sem !important
