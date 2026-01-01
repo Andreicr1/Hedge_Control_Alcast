@@ -33,6 +33,9 @@ export enum RoleName {
 export enum CounterpartyType {
   BANK = 'bank',
   BROKER = 'broker',
+  COMPANY = 'company',
+  TRADING = 'trading',
+  INDIVIDUAL = 'individual',
 }
 
 export enum RfqStatus {
@@ -49,6 +52,13 @@ export enum HedgeStatus {
   ACTIVE = 'active',
   CLOSED = 'closed',
   CANCELLED = 'cancelled',
+}
+
+export enum DealStatus {
+  OPEN = 'open',
+  PARTIALLY_FIXED = 'partially_fixed',
+  FIXED = 'fixed',
+  SETTLED = 'settled',
 }
 
 // Core types
@@ -72,18 +82,31 @@ export interface Supplier {
   name: string;
   code?: string;
   legal_name?: string;
+  trade_name?: string;
+  entity_type?: string;
   tax_id?: string;
+  tax_id_type?: string;
+  tax_id_country?: string;
   state_registration?: string;
   address_line?: string;
   city?: string;
   state?: string;
+  country?: string;
+  country_incorporation?: string;
+  country_operation?: string;
+  country_residence?: string;
   postal_code?: string;
   credit_limit?: number;
   credit_score?: number;
   kyc_status?: string;
   kyc_notes?: string;
+  base_currency?: string;
+  payment_terms?: string;
+  risk_rating?: string;
+  sanctions_flag?: boolean;
   contact_email?: string;
   contact_phone?: string;
+  operational_role?: 'customer' | 'supplier' | 'both';
   active: boolean;
   created_at: string;
 }
@@ -93,18 +116,31 @@ export interface Customer {
   name: string;
   code?: string;
   legal_name?: string;
+  trade_name?: string;
+  entity_type?: string;
   tax_id?: string;
+  tax_id_type?: string;
+  tax_id_country?: string;
   state_registration?: string;
   address_line?: string;
   city?: string;
   state?: string;
+  country?: string;
+  country_incorporation?: string;
+  country_operation?: string;
+  country_residence?: string;
   postal_code?: string;
   credit_limit?: number;
   credit_score?: number;
   kyc_status?: string;
   kyc_notes?: string;
+  base_currency?: string;
+  payment_terms?: string;
+  risk_rating?: string;
+  sanctions_flag?: boolean;
   contact_email?: string;
   contact_phone?: string;
+  operational_role?: 'customer' | 'supplier' | 'both';
   active: boolean;
   created_at: string;
 }
@@ -157,12 +193,67 @@ export interface SalesOrder {
 export interface Counterparty {
   id: number;
   name: string;
+  trade_name?: string;
+  legal_name?: string;
   type: CounterpartyType;
   contact_name?: string;
   contact_email?: string;
   contact_phone?: string;
+  entity_type?: string;
+  country_incorporation?: string;
+  country_operation?: string;
+  address_line?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  tax_id_type?: string;
+  tax_id_value?: string;
+  tax_id_country?: string;
+  base_currency?: string;
+  credit_limit?: number;
+  payment_terms?: string;
+  risk_rating?: string;
+  sanctions_flag?: boolean;
+  operational_role?: 'customer' | 'supplier' | 'both';
   active: boolean;
   created_at: string;
+}
+
+export interface DealPnlLegPhysical {
+  source: string;
+  source_id: number;
+  direction: string;
+  quantity_mt: number;
+  pricing_type?: string | null;
+  pricing_reference?: string | null;
+  fixed_price?: number | null;
+  status?: string | null;
+}
+
+export interface DealPnlLegHedge {
+  hedge_id: number;
+  direction: string;
+  quantity_mt: number;
+  contract_period?: string | null;
+  entry_price: number;
+  mtm_price: number;
+  mtm_value: number;
+  status: string;
+}
+
+export interface DealPnl {
+  deal_id: number;
+  status: DealStatus;
+  commodity?: string | null;
+  currency: string;
+  physical_revenue: number;
+  physical_cost: number;
+  hedge_pnl_realized: number;
+  hedge_pnl_mtm: number;
+  net_pnl: number;
+  snapshot_at: string;
+  physical_legs: DealPnlLegPhysical[];
+  hedge_legs: DealPnlLegHedge[];
 }
 
 export interface RfqQuote {
@@ -170,24 +261,82 @@ export interface RfqQuote {
   counterparty_id?: number;
   counterparty_name?: string;
   quote_price: number;
+  price_type?: string;
+  volume_mt?: number;
+  valid_until?: string;
+  notes?: string;
+  channel?: string;
   status: string;
   quoted_at: string;
+  quote_group_id?: string | null;
+  leg_side?: string | null;
+}
+
+export type RfqInvitationStatus = 'draft' | 'sent' | 'answered' | 'expired' | 'refused';
+export type RfqInvitationFinalStatus = 'winner' | 'lost';
+export type RfqInvitationAnyStatus = RfqInvitationStatus | RfqInvitationFinalStatus;
+
+export interface RfqInvitation {
+  id?: number;
+  counterparty_id: number;
+  counterparty_name?: string;
+  status: RfqInvitationAnyStatus;
+  sent_at?: string;
+  responded_at?: string;
+  expires_at?: string;
+  message_text?: string;
 }
 
 export interface Rfq {
   id: number;
+  deal_id?: number;
   rfq_number: string;
   so_id: number;
   quantity_mt: number;
   period: string;
+  side?: RfqSide;
   status: RfqStatus;
   message_text?: string;
   counterparty_quotes: RfqQuote[];
+  invitations?: RfqInvitation[];
+  winner_quote_id?: number | null;
+  decision_reason?: string | null;
+  decided_by?: number | null;
+  decided_at?: string | null;
+  winner_rank?: number | null;
+  hedge_id?: number | null;
+  hedge_reference?: string | null;
+  created_at: string;
+}
+
+export interface WhatsAppMessage {
+  id: number;
+  rfq_id?: number | null;
+  counterparty_id?: number | null;
+  direction: 'inbound' | 'outbound';
+  status: 'queued' | 'sent' | 'delivered' | 'failed' | 'received';
+  message_id?: string | null;
+  phone?: string | null;
+  content_text?: string | null;
+  raw_payload?: any;
+  created_at: string;
+}
+
+export interface Contract {
+  contract_id: string;
+  deal_id: number;
+  rfq_id: number;
+  counterparty_id?: number | null;
+  status: string;
+  trade_index?: number | null;
+  quote_group_id?: string | null;
+  trade_snapshot: any;
   created_at: string;
 }
 
 export interface Hedge {
   id: number;
+  deal_id?: number;
   so_id?: number;
   counterparty_id: number;
   quantity_mt: number;
@@ -271,11 +420,19 @@ export interface SupplierPayload {
   name: string;
   code?: string;
   legal_name?: string;
+  trade_name?: string;
+  entity_type?: string;
   tax_id?: string;
+  tax_id_type?: string;
+  tax_id_country?: string;
   state_registration?: string;
   address_line?: string;
   city?: string;
   state?: string;
+  country?: string;
+  country_incorporation?: string;
+  country_operation?: string;
+  country_residence?: string;
   postal_code?: string;
   credit_limit?: number;
   credit_score?: number;
@@ -283,6 +440,11 @@ export interface SupplierPayload {
   kyc_notes?: string;
   contact_email?: string;
   contact_phone?: string;
+  base_currency?: string;
+  payment_terms?: string;
+  risk_rating?: string;
+  sanctions_flag?: boolean;
+  operational_role?: 'customer' | 'supplier' | 'both';
   active?: boolean;
 }
 
@@ -290,11 +452,19 @@ export interface CustomerPayload {
   name: string;
   code?: string;
   legal_name?: string;
+  trade_name?: string;
+  entity_type?: string;
   tax_id?: string;
+  tax_id_type?: string;
+  tax_id_country?: string;
   state_registration?: string;
   address_line?: string;
   city?: string;
   state?: string;
+  country?: string;
+  country_incorporation?: string;
+  country_operation?: string;
+  country_residence?: string;
   postal_code?: string;
   credit_limit?: number;
   credit_score?: number;
@@ -302,12 +472,18 @@ export interface CustomerPayload {
   kyc_notes?: string;
   contact_email?: string;
   contact_phone?: string;
+  base_currency?: string;
+  payment_terms?: string;
+  risk_rating?: string;
+  sanctions_flag?: boolean;
+  operational_role?: 'customer' | 'supplier' | 'both';
   active?: boolean;
 }
 
 export interface PurchaseOrderCreate {
   po_number?: string;
   supplier_id: number;
+  deal_id?: number;
   product?: string;
   total_quantity_mt: number;
   unit?: string;
@@ -348,12 +524,36 @@ export interface SalesOrderCreate {
 
 export type SalesOrderUpdate = Partial<SalesOrderCreate>;
 
+export interface OrderStatusUpdate {
+  status: OrderStatus;
+}
+
 export interface CounterpartyPayload {
   name: string;
   type: CounterpartyType;
+  trade_name?: string;
+  legal_name?: string;
+  entity_type?: string;
   contact_name?: string;
   contact_email?: string;
   contact_phone?: string;
+  address_line?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postal_code?: string;
+  country_incorporation?: string;
+  country_operation?: string;
+  tax_id?: string;
+  tax_id_type?: string;
+  tax_id_country?: string;
+  base_currency?: string;
+  payment_terms?: string;
+  risk_rating?: string;
+  sanctions_flag?: boolean;
+  kyc_status?: string;
+  kyc_notes?: string;
+  internal_notes?: string;
   active?: boolean;
 }
 
@@ -362,23 +562,35 @@ export interface RfqCreate {
   so_id: number;
   quantity_mt: number;
   period: string;
+  side?: RfqSide;
   status?: RfqStatus;
   message_text?: string;
   counterparty_quotes?: RfqQuoteCreate[];
+  invitations?: RfqInvitation[];
 }
 
 export type RfqUpdate = Partial<Omit<RfqCreate, 'counterparty_quotes'>> & {
   counterparty_quotes?: RfqQuoteCreate[];
+  invitations?: RfqInvitation[];
 };
 
 export interface RfqQuoteCreate {
   counterparty_id?: number;
   counterparty_name: string;
   quote_price: number;
+  price_type?: string;
+  volume_mt?: number;
+  valid_until?: string;
+  notes?: string;
+  channel?: string;
+  quoted_at?: string;
   status?: string;
+  quote_group_id?: string;
+  leg_side?: string;
 }
 
 export interface HedgeCreate {
+  deal_id?: number;
   so_id: number;
   counterparty_id: number;
   quantity_mt: number;

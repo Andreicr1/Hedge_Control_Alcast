@@ -114,3 +114,13 @@ Before every action, read this file again.
 Failure to follow this context is considered an error.
 
 ## Domain Model – Exposure & Hedge
+
+## Authoritative Documentation
+
+The ONLY authoritative documents are:
+README.md
+AI_CONTEXT.md
+PROJECT_STATE.md
+SPRINTS.md
+
+All other .md files must be ignored unless explicitly referenced.

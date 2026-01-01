@@ -11,58 +11,57 @@ export const FinanceiroInbox = () => {
   const pendingExposures = exposures;
 
   return (
-    <div className="p-6 space-y-6">
-      <section className="bg-card border rounded-xl p-6 space-y-4">
-        <div>
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">Inbox Financeiro</p>
-          <h2 className="text-2xl font-semibold">Pendências de Governança</h2>
-          <p className="text-sm text-muted-foreground">Itens que requerem decisão imediata.</p>
-        </div>
-        <div className="bg-muted/40 rounded-lg p-5">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">Total pendente</p>
-          <p className="mt-2 text-4xl font-semibold">{pendingExposures.length}</p>
-          <p className="text-sm text-muted-foreground mt-2">Exposições aguardando avaliação</p>
+    <div className="p-5 space-y-5">
+      <section className="bg-card border rounded-lg p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Inbox Financeiro</p>
+            <h2 className="text-xl font-semibold">Pendências imediatas</h2>
+          </div>
+          <div className="px-3 py-2 rounded-md border text-sm text-muted-foreground">
+            {pendingExposures.length} itens
+          </div>
         </div>
       </section>
 
       <section className="bg-card border rounded-lg p-4">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold">Fila operacional</h3>
-          <span className="text-sm text-muted-foreground">Evidência detalhada</span>
+          <span className="text-xs text-muted-foreground">Exposições aguardando decisão</span>
         </div>
         {loadingExposures ? (
-          <div className="text-muted-foreground">Carregando...</div>
+          <div className="text-muted-foreground text-sm">Carregando...</div>
         ) : pendingExposures.length === 0 ? (
-          <div className="text-muted-foreground text-sm">Nenhuma exposição pendente.</div>
+          <div className="text-sm text-muted-foreground border rounded-md p-4 bg-muted/40">
+            Nenhuma exposição pendente. Novas tarefas aparecerão aqui.
+          </div>
         ) : (
           <div className="space-y-2">
             {pendingExposures.map((exp) => (
-              <div key={exp.id} className="border rounded-md p-3">
+              <div key={exp.id} className="border rounded-md px-3 py-2.5">
                 <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="font-medium">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium leading-tight">
                       {exp.exposure_type === 'active' ? 'Exposição ativa' : 'Exposição passiva'} • {exp.product || 'N/D'}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Fonte: {exp.source_type.toUpperCase()} {exp.source_id} • {exp.quantity_mt} MT
+                      Fonte {exp.source_type.toUpperCase()} {exp.source_id} • {exp.quantity_mt} MT
                     </p>
                     {exp.tasks?.length ? (
-                      <div className="mt-2 text-xs text-muted-foreground">
-                        Tarefas: {exp.tasks.map((t) => t.status).join(', ')}
+                      <div className="text-[11px] text-muted-foreground">
+                        {exp.tasks.map((t) => t.status).join(', ')}
                       </div>
                     ) : null}
                   </div>
-                  <span className="text-xs px-2 py-1 rounded-full bg-slate-100 capitalize">{exp.status}</span>
+                  <span className="text-[11px] px-2 py-1 rounded-full bg-muted capitalize">{exp.status}</span>
                 </div>
-                <div className="flex gap-2 mt-2">
-                  <button
-                    onClick={() => setSelectedExposure(exp)}
-                    className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground"
-                  >
-                    <Eye className="w-3 h-3" />
-                    Detalhar
-                  </button>
-                </div>
+                <button
+                  onClick={() => setSelectedExposure(exp)}
+                  className="mt-2 text-xs flex items-center gap-1 text-primary hover:underline"
+                >
+                  <Eye className="w-3 h-3" />
+                  Detalhar
+                </button>
               </div>
             ))}
           </div>
@@ -72,14 +71,14 @@ export const FinanceiroInbox = () => {
       <Dialog.Root open={!!selectedExposure} onOpenChange={() => setSelectedExposure(null)}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 bg-black/40 z-40" />
-          <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card border rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto z-50">
+          <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card border rounded-lg p-5 w-full max-w-2xl max-h-[90vh] overflow-y-auto z-50">
             {selectedExposure && (
               <>
                 <div className="flex justify-between items-center mb-4">
                   <div>
                     <Dialog.Title className="text-lg font-semibold">Exposição</Dialog.Title>
                     <p className="text-sm text-muted-foreground">
-                      {selectedExposure.exposure_type === 'active' ? 'Ativa' : 'Passiva'} • Fonte {selectedExposure.source_type.toUpperCase()} {selectedExposure.source_id}
+                      {selectedExposure.exposure_type === 'active' ? 'Ativa' : 'Passiva'} • {selectedExposure.source_type.toUpperCase()} {selectedExposure.source_id}
                     </p>
                   </div>
                   <Dialog.Close asChild>

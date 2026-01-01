@@ -31,13 +31,7 @@ def create_supplier(
 ):
     if db.query(models.Supplier).filter(models.Supplier.name == payload.name).first():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Supplier already exists")
-    sup = models.Supplier(
-        name=payload.name,
-        code=payload.code,
-        contact_email=payload.contact_email,
-        contact_phone=payload.contact_phone,
-        active=payload.active,
-    )
+    sup = models.Supplier(**payload.dict(exclude_unset=True))
     db.add(sup)
     db.commit()
     db.refresh(sup)

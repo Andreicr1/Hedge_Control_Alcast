@@ -9,9 +9,8 @@ from alembic import op
 import sqlalchemy as sa
 
 
-# revision identifiers, used by Alembic.
-revision = "20231221_0010"
-down_revision = "20231221_0009"
+revision = "20231221_0010_add_idempotency_retry_send_attempts"
+down_revision = "20231221_0009_add_fx_flag_market_prices"
 branch_labels = None
 depends_on = None
 

@@ -11,8 +11,8 @@ from sqlalchemy import text
 from sqlalchemy.dialects import postgresql
 
 
-revision = "20250110_0006"
-down_revision = "20250110_0005"
+revision = "20250110_0006_mtm_snapshots"
+down_revision = "20250110_0005_hedge_links"
 branch_labels = None
 depends_on = None
 

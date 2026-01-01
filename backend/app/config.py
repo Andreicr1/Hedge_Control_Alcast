@@ -20,6 +20,7 @@ class Settings(BaseSettings):
         "https://alcast.com.br",
     ]
     storage_dir: str = Field(default=os.getenv("STORAGE_DIR", "storage"))
+    whatsapp_webhook_secret: str | None = Field(default=os.getenv("WHATSAPP_WEBHOOK_SECRET"))
 
     class Config:
         env_file = ".env"

@@ -9,8 +9,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = "20231221_0004"
-down_revision = "20231221_0003"
+revision = "20231221_0004_add_rfq_timestamps"
+down_revision = "20231221_0003_add_rfq_message_text"
 branch_labels = None
 depends_on = None
 

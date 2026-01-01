@@ -5,20 +5,37 @@ import { useData } from '../../../contexts/DataContextAPI';
 import { customersService } from '../../../services/customersService';
 import { Customer, KycDocument } from '../../../types/api';
 
-const estadosBrasil = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
+const entityTypes = ['company', 'financial_institution', 'trading_house', 'individual'];
+const entityTypeLabels: Record<string, string> = {
+  company: 'Empresa',
+  financial_institution: 'Instituição financeira',
+  trading_house: 'Trading',
+  individual: 'Pessoa física',
+};
 
 type FormState = {
   name: string;
   legal_name: string;
-  tax_id: string;
+  entity_type: string;
+  country_incorporation: string;
+  country_operation: string;
+  country_residence: string;
+  tax_id_type: string;
+  tax_id_value: string;
+  tax_id_country: string;
   state_registration: string;
   contact_email: string;
   contact_phone: string;
   address_line: string;
   city: string;
   state: string;
+  country: string;
   postal_code: string;
   credit_limit: number;
+  base_currency: string;
+  payment_terms: string;
+  risk_rating: string;
+  sanctions_flag: boolean;
   kyc_status: string;
   kyc_notes: string;
 };
@@ -26,15 +43,26 @@ type FormState = {
 const initialForm: FormState = {
   name: '',
   legal_name: '',
-  tax_id: '',
+  entity_type: 'company',
+  country_incorporation: '',
+  country_operation: '',
+  country_residence: '',
+  tax_id_type: 'VAT',
+  tax_id_value: '',
+  tax_id_country: '',
   state_registration: '',
   contact_email: '',
   contact_phone: '',
   address_line: '',
   city: '',
-  state: 'SP',
+  state: '',
+  country: '',
   postal_code: '',
   credit_limit: 0,
+  base_currency: 'USD',
+  payment_terms: '',
+  risk_rating: '',
+  sanctions_flag: false,
   kyc_status: 'pending',
   kyc_notes: '',
 };
@@ -54,11 +82,39 @@ export const VendasClientes = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.name || Number(formData.credit_limit) < 0) {
+      setSaving(false);
+      return toast.error('Dados inválidos. Verifique os campos obrigatórios.');
+    }
     setSaving(true);
     try {
       await customersService.create({
-        ...formData,
+        name: formData.name,
+        legal_name: formData.legal_name || undefined,
+        trade_name: formData.name,
+        entity_type: formData.entity_type,
+        country_incorporation: formData.country_incorporation,
+        country_operation: formData.country_operation,
+        country_residence: formData.country_residence || undefined,
+        tax_id: formData.tax_id_value || undefined,
+        tax_id_type: formData.tax_id_type,
+        tax_id_country: formData.tax_id_country || formData.country_incorporation || formData.country_operation || undefined,
+        state_registration: formData.state_registration || undefined,
+        contact_email: formData.contact_email || undefined,
+        contact_phone: formData.contact_phone || undefined,
+        address_line: formData.address_line || undefined,
+        city: formData.city || undefined,
+        state: formData.state || undefined,
+        country: formData.country || formData.country_operation || undefined,
+        postal_code: formData.postal_code || undefined,
         credit_limit: formData.credit_limit || undefined,
+        base_currency: formData.base_currency || undefined,
+        payment_terms: formData.payment_terms || undefined,
+        risk_rating: formData.risk_rating || undefined,
+        sanctions_flag: formData.sanctions_flag,
+        kyc_status: formData.kyc_status || undefined,
+        kyc_notes: formData.kyc_notes || undefined,
+        operational_role: 'customer',
       });
       await fetchCustomers();
       setFormData(initialForm);
@@ -118,7 +174,7 @@ export const VendasClientes = () => {
       <div className="flex items-start justify-between">
         <div>
           <h2 className="text-xl font-semibold">Clientes</h2>
-          <p className="text-muted-foreground">Cadastro completo com análise de crédito e KYC</p>
+          <p className="text-muted-foreground">Cadastro global com crédito e KYC</p>
         </div>
 
         <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -141,139 +197,226 @@ export const VendasClientes = () => {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block mb-2 text-sm">Nome Fantasia *</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Nome fantasia *</label>
                     <input
                       required
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
-                      placeholder="Ex: Metalúrgica Beta"
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="Ex: Global Buyer"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-sm">Razão Social</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Nome legal</label>
                     <input
                       value={formData.legal_name}
                       onChange={(e) => setFormData({ ...formData, legal_name: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
-                      placeholder="Razão Social"
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="Razão social"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Tipo de entidade</label>
+                    <select
+                      value={formData.entity_type}
+                      onChange={(e) => setFormData({ ...formData, entity_type: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                    >
+                      {entityTypes.map((type) => (
+                        <option key={type} value={type}>{entityTypeLabels[type] || type}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">País de incorporação *</label>
+                    <input
+                      required
+                      value={formData.country_incorporation}
+                      onChange={(e) => setFormData({ ...formData, country_incorporation: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="Informe o país"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">País de operação *</label>
+                    <input
+                      required
+                      value={formData.country_operation}
+                      onChange={(e) => setFormData({ ...formData, country_operation: e.target.value, country: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="Onde opera"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">País de residência</label>
+                    <input
+                      value={formData.country_residence}
+                      onChange={(e) => setFormData({ ...formData, country_residence: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="Residência (opcional)"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Moeda base</label>
+                    <input
+                      value={formData.base_currency}
+                      onChange={(e) => setFormData({ ...formData, base_currency: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="USD"
                     />
                   </div>
                 </div>
 
                 <div className="grid md:grid-cols-4 gap-4">
                   <div>
-                    <label className="block mb-2 text-sm">CNPJ</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Tipo de identificador fiscal</label>
                     <input
-                      value={formData.tax_id}
-                      onChange={(e) => setFormData({ ...formData, tax_id: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
-                      placeholder="00.000.000/0000-00"
+                      value={formData.tax_id_type}
+                      onChange={(e) => setFormData({ ...formData, tax_id_type: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="Ex: VAT, EIN, CNPJ"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-sm">Inscrição Estadual</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Número</label>
                     <input
-                      value={formData.state_registration}
-                      onChange={(e) => setFormData({ ...formData, state_registration: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
+                      value={formData.tax_id_value}
+                      onChange={(e) => setFormData({ ...formData, tax_id_value: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="Número fiscal"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-sm">E-mail</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">País emissor</label>
                     <input
-                      value={formData.contact_email}
-                      onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
-                      placeholder="financeiro@cliente.com"
+                      value={formData.tax_id_country}
+                      onChange={(e) => setFormData({ ...formData, tax_id_country: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="Ex: BR, US"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-sm">Telefone</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Termos de pagamento</label>
                     <input
-                      value={formData.contact_phone}
-                      onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
-                      placeholder="+55 11 99999-9999"
+                      value={formData.payment_terms}
+                      onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="ex: 30d, 15d"
                     />
                   </div>
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-4">
                   <div className="md:col-span-2">
-                    <label className="block mb-2 text-sm">Endereço</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Endereço completo</label>
                     <input
                       value={formData.address_line}
                       onChange={(e) => setFormData({ ...formData, address_line: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
-                      placeholder="Rua, número, complemento"
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="Rua, número, complemento, cidade"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-sm">Cidade</label>
-                    <input
-                      value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
-                      placeholder="Cidade"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-2 text-sm">Estado</label>
-                    <select
-                      value={formData.state}
-                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
-                    >
-                      {estadosBrasil.map((uf) => (
-                        <option key={uf} value={uf}>{uf}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block mb-2 text-sm">CEP</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Código postal</label>
                     <input
                       value={formData.postal_code}
                       onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
-                      placeholder="00000-000"
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="ZIP/Postal"
                     />
                   </div>
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block mb-2 text-sm">Limite de Crédito (R$)</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Limite de crédito</label>
                     <input
                       type="number"
                       value={formData.credit_limit || ''}
                       onChange={(e) => setFormData({ ...formData, credit_limit: Number(e.target.value) })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
                       placeholder="0"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-sm">Status KYC</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Classificação de risco</label>
+                    <input
+                      value={formData.risk_rating}
+                      onChange={(e) => setFormData({ ...formData, risk_rating: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="ex: BBB"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 pt-6">
+                    <input
+                      id="sanctions-customer"
+                      type="checkbox"
+                      checked={formData.sanctions_flag}
+                      onChange={(e) => setFormData({ ...formData, sanctions_flag: e.target.checked })}
+                    />
+                    <label htmlFor="sanctions-customer" className="text-sm">Flag de sanções</label>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">E-mail de contato</label>
+                    <input
+                      value={formData.contact_email}
+                      onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="financeiro@cliente.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Telefone</label>
+                    <input
+                      value={formData.contact_phone}
+                      onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="+1 202 555 0100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Registro/ID estadual</label>
+                    <input
+                      value={formData.state_registration}
+                      onChange={(e) => setFormData({ ...formData, state_registration: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
+                      placeholder="ID"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Status KYC</label>
                     <select
                       value={formData.kyc_status}
                       onChange={(e) => setFormData({ ...formData, kyc_status: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
                     >
                       <option value="pending">Pendente</option>
                       <option value="approved">Aprovado</option>
-                      <option value="manual_review">Em revisão</option>
+                      <option value="manual_review">Revisão manual</option>
                       <option value="rejected">Reprovado</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block mb-2 text-sm">Notas</label>
+                  <div className="md:col-span-2">
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Observações internas</label>
                     <textarea
                       value={formData.kyc_notes}
                       onChange={(e) => setFormData({ ...formData, kyc_notes: e.target.value })}
                       className="w-full px-4 py-2 border rounded-md bg-background min-h-[70px]"
-                      placeholder="Observações internas"
+                      placeholder="Compliance / onboarding"
                     />
                   </div>
                 </div>
@@ -304,7 +447,7 @@ export const VendasClientes = () => {
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="font-semibold text-lg">{cust.name}</h3>
-                  <p className="text-sm text-muted-foreground">{cust.legal_name || 'Razão social não informada'}</p>
+                  <p className="text-sm text-muted-foreground">{cust.legal_name || 'Legal name não informado'}</p>
                 </div>
                 <span className={`px-2 py-1 text-xs rounded-full ${kycBadge(cust.kyc_status)}`}>
                   {cust.kyc_status || 'pending'}
@@ -312,11 +455,12 @@ export const VendasClientes = () => {
               </div>
 
               <div className="text-sm space-y-1 text-foreground">
-                <div><strong>CNPJ:</strong> {cust.tax_id || '—'}</div>
+                <div><strong>Identificador:</strong> {cust.tax_id_type ? `${cust.tax_id_type}:` : ''} {cust.tax_id || '—'}</div>
+                <div><strong>País:</strong> {cust.country_operation || cust.country || cust.country_incorporation || '—'}</div>
                 <div><strong>Contato:</strong> {cust.contact_email || '—'} {cust.contact_phone ? `• ${cust.contact_phone}` : ''}</div>
-                <div><strong>Cidade/UF:</strong> {cust.city || '—'} / {cust.state || '—'}</div>
-                <div><strong>Limite crédito:</strong> R$ {cust.credit_limit?.toLocaleString() || '—'}</div>
-                <div><strong>Score:</strong> {cust.credit_score ?? '—'}</div>
+                <div><strong>Endereço:</strong> {cust.address_line || '—'} {cust.postal_code ? `• ${cust.postal_code}` : ''}</div>
+                <div><strong>Limite crédito:</strong> {cust.base_currency || 'Moeda'} {cust.credit_limit?.toLocaleString() || '—'}</div>
+                <div><strong>Classificação:</strong> {cust.risk_rating || '—'}</div>
               </div>
 
               <div className="flex flex-wrap gap-2">

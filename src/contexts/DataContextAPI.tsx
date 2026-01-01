@@ -81,10 +81,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Verificar modo mock da variável de ambiente
   const useMock = import.meta.env.VITE_USE_MOCK_DATA === 'true';
 
-  console.log('🔧 DataContext initialized');
-  console.log('   Mode:', useMock ? 'MOCK' : 'API REAL');
-  console.log('   API URL:', import.meta.env.VITE_API_URL);
-
   // States
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [loadingPOs, setLoadingPOs] = useState(true);
@@ -126,9 +122,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setPurchaseOrders(data);
       }
     } catch (error: any) {
-      console.warn('Backend não disponível, usando dados mockados para POs');
-      // Fallback automático para mock
-      setPurchaseOrders(mockData.purchaseOrders as any);
+      if (useMock) {
+        setPurchaseOrders(mockData.purchaseOrders as any);
+      } else {
+        setPurchaseOrders([]);
+      }
     } finally {
       setLoadingPOs(false);
     }
@@ -144,8 +142,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setSalesOrders(data);
       }
     } catch (error: any) {
-      console.warn('Backend não disponível, usando dados mockados para SOs');
-      setSalesOrders(mockData.salesOrders as any);
+      if (useMock) {
+        setSalesOrders(mockData.salesOrders as any);
+      } else {
+        setSalesOrders([]);
+      }
     } finally {
       setLoadingSOs(false);
     }
@@ -161,8 +162,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setSuppliers(data);
       }
     } catch (error: any) {
-      console.warn('Backend não disponível, usando dados mockados para Suppliers');
-      setSuppliers(mockData.suppliers as any);
+      if (useMock) {
+        setSuppliers(mockData.suppliers as any);
+      } else {
+        setSuppliers([]);
+      }
     } finally {
       setLoadingSuppliers(false);
     }
@@ -178,8 +182,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setCustomers(data);
       }
     } catch (error: any) {
-      console.warn('Backend não disponível, usando dados mockados para Customers');
-      setCustomers(mockData.customers as any);
+      if (useMock) {
+        setCustomers(mockData.customers as any);
+      } else {
+        setCustomers([]);
+      }
     } finally {
       setLoadingCustomers(false);
     }
@@ -195,8 +202,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setCounterparties(data);
       }
     } catch (error: any) {
-      console.warn('Backend não disponível, usando dados mockados para Counterparties');
-      setCounterparties(mockData.counterparties as any);
+      if (useMock) {
+        setCounterparties(mockData.counterparties as any);
+      } else {
+        setCounterparties([]);
+      }
     } finally {
       setLoadingCounterparties(false);
     }
@@ -212,8 +222,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setRfqs(data);
       }
     } catch (error: any) {
-      console.warn('Backend não disponível, usando dados mockados para RFQs');
-      setRfqs(mockData.rfqs as any);
+      if (useMock) {
+        setRfqs(mockData.rfqs as any);
+      } else {
+        setRfqs([]);
+      }
     } finally {
       setLoadingRfqs(false);
     }
@@ -229,8 +242,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setHedges(data);
       }
     } catch (error: any) {
-      console.warn('Backend não disponível, usando dados mockados para Hedges');
-      setHedges(mockData.hedges as any);
+      if (useMock) {
+        setHedges(mockData.hedges as any);
+      } else {
+        setHedges([]);
+      }
     } finally {
       setLoadingHedges(false);
     }
@@ -246,8 +262,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setLocations(data);
       }
     } catch (error: any) {
-      console.warn('Backend não disponível, usando dados mockados para Locations');
-      setLocations(mockData.locations as any);
+      if (useMock) {
+        setLocations(mockData.locations as any);
+      } else {
+        setLocations([]);
+      }
     } finally {
       setLoadingLocations(false);
     }
@@ -263,8 +282,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setExposures(data);
       }
     } catch (error: any) {
-      console.warn('Backend não disponível, usando dados mockados para Exposures');
-      setExposures(mockData.exposures as any);
+      if (useMock) {
+        setExposures(mockData.exposures as any);
+      } else {
+        setExposures([]);
+      }
     } finally {
       setLoadingExposures(false);
     }

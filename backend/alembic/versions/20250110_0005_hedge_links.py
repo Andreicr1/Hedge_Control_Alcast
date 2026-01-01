@@ -9,8 +9,8 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "20250110_0005"
-down_revision = "20250110_0004"
+revision = "20250110_0005_hedge_links"
+down_revision = "20250110_0004_exposures_tasks"
 branch_labels = None
 depends_on = None
 

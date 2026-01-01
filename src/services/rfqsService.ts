@@ -43,6 +43,16 @@ export const rfqsService = {
     return response.data;
   },
 
+  award: async (id: number, data: { quote_id: number; motivo: string; hedge_id?: number; hedge_reference?: string }) => {
+    const response = await api.post(`/rfqs/${id}/award`, data);
+    return response.data;
+  },
+
+  downloadQuotes: async (id: number): Promise<Blob> => {
+    const response = await api.get(`/rfqs/${id}/quotes/export`, { responseType: 'blob' });
+    return response.data;
+  },
+
   preview: async (payload: RfqPreviewRequest): Promise<RfqPreviewResponse> => {
     const response = await api.post<RfqPreviewResponse>('/rfqs/preview', payload);
     return response.data;

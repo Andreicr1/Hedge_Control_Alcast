@@ -7,6 +7,7 @@ from app.models.domain import HedgeStatus
 
 
 class HedgeBase(BaseModel):
+    deal_id: int
     so_id: int
     counterparty_id: int
     quantity_mt: float
@@ -22,6 +23,7 @@ class HedgeCreate(HedgeBase):
 
 
 class HedgeUpdate(BaseModel):
+    deal_id: Optional[int] = None
     so_id: Optional[int] = None
     counterparty_id: Optional[int] = None
     quantity_mt: Optional[float] = None

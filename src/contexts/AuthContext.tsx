@@ -44,7 +44,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (credentials: LoginRequest) => {
     // Verificar se está em modo mock
     const useMockEnv = import.meta.env.VITE_USE_MOCK_DATA;
-    const useMock = useMockEnv === 'true' || useMockEnv === true;
+    const useMock = useMockEnv === 'true';
 
     console.log('🔐 Iniciando login...');
     console.log('   VITE_USE_MOCK_DATA:', useMockEnv);

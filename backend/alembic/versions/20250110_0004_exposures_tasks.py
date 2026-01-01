@@ -10,8 +10,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 
-revision = "20250110_0004"
-down_revision = "20250110_0003"
+revision = "20250110_0004_exposures_tasks"
+down_revision = "20250110_0003_po_so_fields_mtm"
 branch_labels = None
 depends_on = None
 

@@ -1,5 +1,5 @@
 import api from './api';
-import { SalesOrder, SalesOrderCreate, SalesOrderUpdate } from '../types/api';
+import { OrderStatusUpdate, SalesOrder, SalesOrderCreate, SalesOrderUpdate } from '../types/api';
 
 export const salesOrdersService = {
   // Listar todas as SOs
@@ -22,6 +22,11 @@ export const salesOrdersService = {
 
   // Atualizar SO
   update: async (id: number, data: SalesOrderUpdate): Promise<SalesOrder> => {
+    const response = await api.put<SalesOrder>(`/sales-orders/${id}`, data);
+    return response.data;
+  },
+
+  updateStatus: async (id: number, data: OrderStatusUpdate): Promise<SalesOrder> => {
     const response = await api.put<SalesOrder>(`/sales-orders/${id}`, data);
     return response.data;
   },

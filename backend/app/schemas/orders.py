@@ -9,19 +9,32 @@ from app.models.domain import OrderStatus, PricingType
 class SupplierBase(BaseModel):
     name: str = Field(..., min_length=2, max_length=255)
     code: Optional[str] = Field(None, max_length=32)
+    trade_name: Optional[str] = Field(None, max_length=255)
+    entity_type: Optional[str] = Field(None, max_length=64)
     legal_name: Optional[str] = None
     tax_id: Optional[str] = Field(None, max_length=32)
+    tax_id_type: Optional[str] = Field(None, max_length=32)
+    tax_id_country: Optional[str] = Field(None, max_length=32)
     state_registration: Optional[str] = Field(None, max_length=64)
     address_line: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = Field(None, max_length=8)
+    country: Optional[str] = Field(None, max_length=64)
     postal_code: Optional[str] = Field(None, max_length=32)
+    country_incorporation: Optional[str] = Field(None, max_length=64)
+    country_operation: Optional[str] = Field(None, max_length=64)
+    country_residence: Optional[str] = Field(None, max_length=64)
     credit_limit: Optional[float] = Field(None, ge=0)
     credit_score: Optional[int] = Field(None, ge=0, le=1000)
     kyc_status: Optional[str] = None
     kyc_notes: Optional[str] = None
     contact_email: Optional[EmailStr] = None
     contact_phone: Optional[str] = None
+    base_currency: Optional[str] = Field(None, max_length=8)
+    payment_terms: Optional[str] = Field(None, max_length=128)
+    risk_rating: Optional[str] = Field(None, max_length=64)
+    sanctions_flag: Optional[bool] = None
+    internal_notes: Optional[str] = None
     active: bool = True
 
 
@@ -32,19 +45,32 @@ class SupplierCreate(SupplierBase):
 class SupplierUpdate(BaseModel):
     name: Optional[str] = None
     code: Optional[str] = None
+    trade_name: Optional[str] = None
+    entity_type: Optional[str] = None
     legal_name: Optional[str] = None
     tax_id: Optional[str] = None
+    tax_id_type: Optional[str] = None
+    tax_id_country: Optional[str] = None
     state_registration: Optional[str] = None
     address_line: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
+    country: Optional[str] = None
     postal_code: Optional[str] = None
+    country_incorporation: Optional[str] = None
+    country_operation: Optional[str] = None
+    country_residence: Optional[str] = None
     credit_limit: Optional[float] = None
     credit_score: Optional[int] = None
     kyc_status: Optional[str] = None
     kyc_notes: Optional[str] = None
     contact_email: Optional[EmailStr] = None
     contact_phone: Optional[str] = None
+    base_currency: Optional[str] = None
+    payment_terms: Optional[str] = None
+    risk_rating: Optional[str] = None
+    sanctions_flag: Optional[bool] = None
+    internal_notes: Optional[str] = None
     active: Optional[bool] = None
 
 
@@ -59,19 +85,32 @@ class SupplierRead(SupplierBase):
 class CustomerBase(BaseModel):
     name: str = Field(..., min_length=2, max_length=255)
     code: Optional[str] = Field(None, max_length=32)
+    trade_name: Optional[str] = Field(None, max_length=255)
     legal_name: Optional[str] = None
+    entity_type: Optional[str] = Field(None, max_length=64)
     tax_id: Optional[str] = Field(None, max_length=32)
+    tax_id_type: Optional[str] = Field(None, max_length=32)
+    tax_id_country: Optional[str] = Field(None, max_length=32)
     state_registration: Optional[str] = Field(None, max_length=64)
     address_line: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = Field(None, max_length=8)
+    country: Optional[str] = Field(None, max_length=64)
     postal_code: Optional[str] = Field(None, max_length=32)
+    country_incorporation: Optional[str] = Field(None, max_length=64)
+    country_operation: Optional[str] = Field(None, max_length=64)
+    country_residence: Optional[str] = Field(None, max_length=64)
     credit_limit: Optional[float] = Field(None, ge=0)
     credit_score: Optional[int] = Field(None, ge=0, le=1000)
     kyc_status: Optional[str] = None
     kyc_notes: Optional[str] = None
     contact_email: Optional[EmailStr] = None
     contact_phone: Optional[str] = None
+    base_currency: Optional[str] = Field(None, max_length=8)
+    payment_terms: Optional[str] = Field(None, max_length=128)
+    risk_rating: Optional[str] = Field(None, max_length=64)
+    sanctions_flag: Optional[bool] = None
+    internal_notes: Optional[str] = None
     active: bool = True
 
 
@@ -82,19 +121,32 @@ class CustomerCreate(CustomerBase):
 class CustomerUpdate(BaseModel):
     name: Optional[str] = None
     code: Optional[str] = None
+    trade_name: Optional[str] = None
     legal_name: Optional[str] = None
+    entity_type: Optional[str] = None
     tax_id: Optional[str] = None
+    tax_id_type: Optional[str] = None
+    tax_id_country: Optional[str] = None
     state_registration: Optional[str] = None
     address_line: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
+    country: Optional[str] = None
     postal_code: Optional[str] = None
+    country_incorporation: Optional[str] = None
+    country_operation: Optional[str] = None
+    country_residence: Optional[str] = None
     credit_limit: Optional[float] = None
     credit_score: Optional[int] = None
     kyc_status: Optional[str] = None
     kyc_notes: Optional[str] = None
     contact_email: Optional[EmailStr] = None
     contact_phone: Optional[str] = None
+    base_currency: Optional[str] = None
+    payment_terms: Optional[str] = None
+    risk_rating: Optional[str] = None
+    sanctions_flag: Optional[bool] = None
+    internal_notes: Optional[str] = None
     active: Optional[bool] = None
 
 
@@ -109,6 +161,7 @@ class CustomerRead(CustomerBase):
 class PurchaseOrderBase(BaseModel):
     po_number: Optional[str] = None
     supplier_id: int
+    deal_id: Optional[int] = None
     product: Optional[str] = Field(None, max_length=255)
     total_quantity_mt: float = Field(..., gt=0)
     unit: Optional[str] = Field("MT", max_length=16)
@@ -133,6 +186,7 @@ class PurchaseOrderCreate(PurchaseOrderBase):
 class PurchaseOrderUpdate(BaseModel):
     po_number: Optional[str] = None
     supplier_id: Optional[int] = None
+    deal_id: Optional[int] = None
     product: Optional[str] = None
     total_quantity_mt: Optional[float] = None
     unit: Optional[str] = None

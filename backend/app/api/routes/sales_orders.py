@@ -9,6 +9,7 @@ from app.database import get_db
 from app import models
 from app.schemas import SalesOrderCreate, SalesOrderRead, SalesOrderUpdate
 from app.api.deps import require_roles
+from app.services.deal_engine import ensure_deal_for_sales_order
 
 router = APIRouter(prefix="/sales-orders", tags=["sales_orders"])
 
@@ -41,6 +42,8 @@ def create_sales_order(
     customer = db.get(models.Customer, payload.customer_id)
     if not customer:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Customer not found")
+    if payload.unit_price is not None and payload.unit_price <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Preço unitário deve ser positivo.")
 
     so_number = payload.so_number or _generate_so_number()
 
@@ -79,6 +82,9 @@ def create_sales_order(
     db.flush()
     task = models.HedgeTask(exposure_id=exposure.id)
     db.add(task)
+
+    deal = ensure_deal_for_sales_order(db, so)
+    so.deal_id = deal.id
 
     db.commit()
     db.refresh(so)

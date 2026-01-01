@@ -1,5 +1,5 @@
 import api from './api';
-import { PurchaseOrder, PurchaseOrderCreate, PurchaseOrderUpdate } from '../types/api';
+import { OrderStatusUpdate, PurchaseOrder, PurchaseOrderCreate, PurchaseOrderUpdate } from '../types/api';
 
 export const purchaseOrdersService = {
   // Listar todas as POs
@@ -22,6 +22,11 @@ export const purchaseOrdersService = {
 
   // Atualizar PO
   update: async (id: number, data: PurchaseOrderUpdate): Promise<PurchaseOrder> => {
+    const response = await api.put<PurchaseOrder>(`/purchase-orders/${id}`, data);
+    return response.data;
+  },
+
+  updateStatus: async (id: number, data: OrderStatusUpdate): Promise<PurchaseOrder> => {
     const response = await api.put<PurchaseOrder>(`/purchase-orders/${id}`, data);
     return response.data;
   },

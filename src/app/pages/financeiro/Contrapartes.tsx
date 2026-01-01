@@ -1,46 +1,62 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, X, Building2, CheckCircle } from 'lucide-react';
+import { Plus, X, Building2 } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
-import * as Checkbox from '@radix-ui/react-checkbox';
 import { useData } from '../../../contexts/DataContextAPI';
 import { counterpartiesService } from '../../../services/counterpartiesService';
-import { CounterpartyType } from '../../../types/api';
+import { Counterparty, CounterpartyType } from '../../../types/api';
 
-const canaisDisponiveis = ['Email', 'Telefone', 'WhatsApp', 'Bloomberg', 'Telegram'];
-const estadosBrasil = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
-
-interface FormState {
-  nome: string;
-  tipo: 'banco' | 'corretora';
-  cnpj: string;
-  contatoPrincipal: string;
-  email: string;
-  telefone: string;
-  endereco: string;
-  cidade: string;
-  estado: string;
-  cep: string;
-  limite: number;
-  canais: string[];
-  status: 'ativo' | 'inativo';
-  observacoes: string;
-}
+type FormState = {
+  name: string;
+  trade_name: string;
+  legal_name: string;
+  type: CounterpartyType;
+  contact_name: string;
+  contact_email: string;
+  contact_phone: string;
+  address_line: string;
+  city: string;
+  state: string;
+  country: string;
+  postal_code: string;
+  country_incorporation: string;
+  country_operation: string;
+  tax_id_type: string;
+  tax_id_value: string;
+  tax_id_country: string;
+  base_currency: string;
+  payment_terms: string;
+  risk_rating: string;
+  sanctions_flag: boolean;
+  kyc_status: string;
+  kyc_notes: string;
+  internal_notes: string;
+};
 
 const initialForm: FormState = {
-  nome: '',
-  tipo: 'banco',
-  cnpj: '',
-  contatoPrincipal: '',
-  email: '',
-  telefone: '',
-  endereco: '',
-  cidade: '',
-  estado: 'SP',
-  cep: '',
-  limite: 0,
-  canais: [],
-  status: 'ativo',
-  observacoes: '',
+  name: '',
+  trade_name: '',
+  legal_name: '',
+  type: CounterpartyType.BANK,
+  contact_name: '',
+  contact_email: '',
+  contact_phone: '',
+  address_line: '',
+  city: '',
+  state: '',
+  country: '',
+  postal_code: '',
+  country_incorporation: '',
+  country_operation: '',
+  tax_id_type: '',
+  tax_id_value: '',
+  tax_id_country: '',
+  base_currency: 'USD',
+  payment_terms: '',
+  risk_rating: '',
+  sanctions_flag: false,
+  kyc_status: '',
+  kyc_notes: '',
+  internal_notes: '',
 };
 
 export const FinanceiroContrapartes = () => {
@@ -58,11 +74,30 @@ export const FinanceiroContrapartes = () => {
     setSaving(true);
     try {
       await counterpartiesService.create({
-        name: formData.nome,
-        type: formData.tipo === 'banco' ? CounterpartyType.BANK : CounterpartyType.BROKER,
-        contact_name: formData.contatoPrincipal,
-        contact_email: formData.email,
-        contact_phone: formData.telefone,
+        name: formData.name,
+        trade_name: formData.trade_name || formData.name,
+        legal_name: formData.legal_name || formData.name,
+        type: formData.type,
+        contact_name: formData.contact_name || undefined,
+        contact_email: formData.contact_email || undefined,
+        contact_phone: formData.contact_phone || undefined,
+        address_line: formData.address_line || undefined,
+        city: formData.city || undefined,
+        state: formData.state || undefined,
+        country: formData.country || undefined,
+        postal_code: formData.postal_code || undefined,
+        country_incorporation: formData.country_incorporation || undefined,
+        country_operation: formData.country_operation || undefined,
+        tax_id: formData.tax_id_value || undefined,
+        tax_id_type: formData.tax_id_type || undefined,
+        tax_id_country: formData.tax_id_country || undefined,
+        base_currency: formData.base_currency || undefined,
+        payment_terms: formData.payment_terms || undefined,
+        risk_rating: formData.risk_rating || undefined,
+        sanctions_flag: formData.sanctions_flag,
+        kyc_status: formData.kyc_status || undefined,
+        kyc_notes: formData.kyc_notes || undefined,
+        internal_notes: formData.internal_notes || undefined,
       });
       await fetchCounterparties();
       setDialogOpen(false);
@@ -72,53 +107,29 @@ export const FinanceiroContrapartes = () => {
     }
   };
 
-  const toggleCanal = (canal: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      canais: prev.canais.includes(canal)
-        ? prev.canais.filter((c) => c !== canal)
-        : [...prev.canais, canal],
-    }));
-  };
-
-  const formatCNPJ = (value: string) => {
-    const numbers = value.replace(/\D/g, '');
-    if (numbers.length <= 14) {
-      return numbers
-        .replace(/(\d{2})(\d)/, '$1.$2')
-        .replace(/(\d{3})(\d)/, '$1.$2')
-        .replace(/(\d{3})(\d)/, '$1/$2')
-        .replace(/(\d{4})(\d)/, '$1-$2');
-    }
-    return value;
-  };
-
-  const formatCEP = (value: string) => {
-    const numbers = value.replace(/\D/g, '');
-    return numbers.replace(/(\d{5})(\d)/, '$1-$2');
-  };
+  const itemBadge = (cp: Counterparty) => (cp.active ? 'text-emerald-700 bg-emerald-50' : 'text-slate-600 bg-slate-100');
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-xl font-semibold">Contrapartes</h2>
-          <p className="text-muted-foreground text-sm">Bancos e corretoras habilitadas.</p>
+          <p className="text-muted-foreground text-sm">Cadastro internacional de bancos, brokers e parceiros.</p>
         </div>
 
         <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
           <Dialog.Trigger asChild>
             <button className="flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90">
               <Plus className="w-4 h-4" />
-              Nova Contraparte
+              Nova contraparte
             </button>
           </Dialog.Trigger>
 
           <Dialog.Portal>
             <Dialog.Overlay className="fixed inset-0 bg-black/50 z-40" />
-            <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card border rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto z-50">
-              <div className="flex justify-between items-center mb-6">
-                <Dialog.Title className="text-xl font-medium">Cadastrar Nova Contraparte</Dialog.Title>
+            <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card border rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto z-50">
+              <div className="flex justify-between items-center mb-4">
+                <Dialog.Title className="text-lg font-semibold">Cadastrar contraparte</Dialog.Title>
                 <Dialog.Close asChild>
                   <button className="p-2 hover:bg-accent rounded-md">
                     <X className="w-5 h-5" />
@@ -126,231 +137,234 @@ export const FinanceiroContrapartes = () => {
                 </Dialog.Close>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-muted-foreground border-b pb-2">Informações Básicas</h3>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="md:col-span-2">
-                      <label className="block mb-2">Nome da Instituição *</label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.nome}
-                        onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                        placeholder="Ex: Banco Itaú BBA"
-                        className="w-full px-4 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block mb-2">Tipo *</label>
-                      <select
-                        required
-                        value={formData.tipo}
-                        onChange={(e) =>
-                          setFormData({ ...formData, tipo: e.target.value as 'banco' | 'corretora' })
-                        }
-                        className="w-full px-4 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                      >
-                        <option value="banco">Banco</option>
-                        <option value="corretora">Corretora</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block mb-2">CNPJ *</label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.cnpj}
-                        onChange={(e) => setFormData({ ...formData, cnpj: formatCNPJ(e.target.value) })}
-                        placeholder="00.000.000/0000-00"
-                        maxLength={18}
-                        className="w-full px-4 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block mb-2">Status</label>
-                      <select
-                        value={formData.status}
-                        onChange={(e) =>
-                          setFormData({ ...formData, status: e.target.value as 'ativo' | 'inativo' })
-                        }
-                        className="w-full px-4 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                      >
-                        <option value="ativo">Ativo</option>
-                        <option value="inativo">Inativo</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block mb-2">Limite de Crédito (R$) *</label>
-                      <input
-                        type="number"
-                        required
-                        min="0"
-                        step="1000000"
-                        value={formData.limite || ''}
-                        onChange={(e) => setFormData({ ...formData, limite: Number(e.target.value) })}
-                        placeholder="0"
-                        className="w-full px-4 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Nome legal *</label>
+                    <input
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="Instituição / empresa"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Nome fantasia</label>
+                    <input
+                      value={formData.trade_name}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, trade_name: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                    />
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <h3 className="text-muted-foreground border-b pb-2">Dados de Contato</h3>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block mb-2">Contato Principal *</label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.contatoPrincipal}
-                        onChange={(e) =>
-                          setFormData({ ...formData, contatoPrincipal: e.target.value })
-                        }
-                        placeholder="Nome do responsável"
-                        className="w-full px-4 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block mb-2">Email *</label>
-                      <input
-                        type="email"
-                        required
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        placeholder="contato@instituicao.com.br"
-                        className="w-full px-4 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block mb-2">Telefone *</label>
-                      <input
-                        type="tel"
-                        required
-                        value={formData.telefone}
-                        onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                        placeholder="(11) 0000-0000"
-                        className="w-full px-4 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block mb-3">Canais de Comunicação *</label>
-                      <div className="flex flex-wrap gap-4">
-                        {canaisDisponiveis.map((canal) => (
-                          <label key={canal} className="flex items-center gap-2 cursor-pointer">
-                            <Checkbox.Root
-                              checked={formData.canais.includes(canal)}
-                              onCheckedChange={() => toggleCanal(canal)}
-                              className="w-5 h-5 border-2 rounded flex items-center justify-center bg-background hover:bg-accent"
-                            >
-                              <Checkbox.Indicator>
-                                <CheckCircle className="w-4 h-4 text-primary" />
-                              </Checkbox.Indicator>
-                            </Checkbox.Root>
-                            <span>{canal}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
+                <div className="grid md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Tipo</label>
+                    <select
+                      value={formData.type}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, type: e.target.value as CounterpartyType }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                    >
+                      <option value={CounterpartyType.BANK}>Banco</option>
+                      <option value={CounterpartyType.BROKER}>Corretora</option>
+                      <option value={CounterpartyType.COMPANY}>Empresa</option>
+                      <option value={CounterpartyType.TRADING}>Trading</option>
+                      <option value={CounterpartyType.INDIVIDUAL}>Pessoa física</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Contato</label>
+                    <input
+                      value={formData.contact_name}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, contact_name: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="Responsável"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="email"
+                      value={formData.contact_email}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, contact_email: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="E-mail"
+                    />
+                    <input
+                      value={formData.contact_phone}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, contact_phone: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="Telefone"
+                    />
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <h3 className="text-muted-foreground border-b pb-2">Endereço</h3>
-
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div className="md:col-span-2">
-                      <label className="block mb-2">Endereço *</label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.endereco}
-                        onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
-                        placeholder="Logradouro, número"
-                        className="w-full px-4 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block mb-2">CEP *</label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.cep}
-                        onChange={(e) => setFormData({ ...formData, cep: formatCEP(e.target.value) })}
-                        placeholder="00000-000"
-                        maxLength={9}
-                        className="w-full px-4 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block mb-2">Cidade *</label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.cidade}
-                        onChange={(e) => setFormData({ ...formData, cidade: e.target.value })}
-                        placeholder="São Paulo"
-                        className="w-full px-4 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block mb-2">Estado *</label>
-                      <select
-                        required
-                        value={formData.estado}
-                        onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
-                        className="w-full px-4 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                      >
-                        {estadosBrasil.map((estado) => (
-                          <option key={estado} value={estado}>
-                            {estado}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                <div className="grid md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Identificação fiscal</label>
+                    <input
+                      value={formData.tax_id_type}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, tax_id_type: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="CNPJ / VAT / EIN / TIN"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Número</label>
+                    <input
+                      value={formData.tax_id_value}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, tax_id_value: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">País emissor</label>
+                    <input
+                      value={formData.tax_id_country}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, tax_id_country: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="País"
+                    />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block mb-2">Observações</label>
-                  <textarea
-                    value={formData.observacoes}
-                    onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                    placeholder="Informações adicionais sobre a contraparte..."
-                    rows={3}
-                    className="w-full px-4 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-                  />
+                <div className="grid md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Endereço</label>
+                    <input
+                      value={formData.address_line}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, address_line: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="Linha principal"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      value={formData.city}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, city: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="Cidade"
+                    />
+                    <input
+                      value={formData.state}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, state: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="Região/Estado"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      value={formData.country}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, country: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="País"
+                    />
+                    <input
+                      value={formData.postal_code}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, postal_code: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="Código postal"
+                    />
+                  </div>
                 </div>
 
-                <div className="flex gap-3 pt-4 border-t">
+                <div className="grid md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Moeda base</label>
+                    <input
+                      value={formData.base_currency}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, base_currency: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="USD, EUR..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Condições de pagamento</label>
+                    <input
+                      value={formData.payment_terms}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, payment_terms: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="30/45/60"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      value={formData.country_incorporation}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, country_incorporation: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="País incorp."
+                    />
+                    <input
+                      value={formData.country_operation}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, country_operation: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="País operação"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Rating / risco</label>
+                    <input
+                      value={formData.risk_rating}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, risk_rating: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="ex: BBB-"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="sanctions_flag"
+                      type="checkbox"
+                      checked={formData.sanctions_flag}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, sanctions_flag: e.target.checked }))}
+                      className="h-4 w-4"
+                    />
+                    <label htmlFor="sanctions_flag" className="text-sm">Flag de sanções</label>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Status KYC/KYP</label>
+                    <input
+                      value={formData.kyc_status}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, kyc_status: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="pending / approved"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Notas internas</label>
+                    <textarea
+                      value={formData.internal_notes}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, internal_notes: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm min-h-[80px]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Observações KYC</label>
+                    <textarea
+                      value={formData.kyc_notes}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, kyc_notes: e.target.value }))}
+                      className="w-full border rounded-md px-3 py-2 text-sm min-h-[80px]"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3">
+                  <Dialog.Close asChild>
+                    <button className="px-4 py-2 text-sm rounded-md border hover:bg-muted">Cancelar</button>
+                  </Dialog.Close>
                   <button
                     type="submit"
                     disabled={saving}
-                    className="flex-1 bg-primary text-primary-foreground px-4 py-2 rounded-md hover:opacity-90 disabled:opacity-60"
+                    className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
                   >
-                    {saving ? 'Cadastrando...' : 'Cadastrar Contraparte'}
+                    {saving ? 'Salvando...' : 'Salvar'}
                   </button>
-                  <Dialog.Close asChild>
-                    <button
-                      type="button"
-                      className="px-6 py-2 border rounded-md hover:bg-accent"
-                    >
-                      Cancelar
-                    </button>
-                  </Dialog.Close>
                 </div>
               </form>
             </Dialog.Content>
@@ -358,65 +372,32 @@ export const FinanceiroContrapartes = () => {
         </Dialog.Root>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="bg-card border rounded-lg p-4">
         {loadingCounterparties ? (
-          <div className="text-muted-foreground">Carregando contrapartes...</div>
+          <div className="text-sm text-muted-foreground">Carregando contrapartes...</div>
         ) : counterparties.length === 0 ? (
-          <div className="text-muted-foreground">Nenhuma contraparte cadastrada.</div>
+          <div className="text-sm text-muted-foreground border rounded-md p-3 bg-muted/40">Nenhuma contraparte cadastrada.</div>
         ) : (
-          counterparties.map((cp) => (
-            <div
-              key={cp.id}
-              className="bg-card border rounded-lg p-6 space-y-4 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-primary/10 rounded-md">
-                    <Building2 className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3>{cp.name}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground capitalize">
-                        {cp.type}
-                      </span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">
-                        Ativo
-                      </span>
+          <div className="grid md:grid-cols-2 gap-3">
+            {counterparties.map((cp) => (
+              <div key={cp.id} className="border rounded-md p-3 bg-muted/30 space-y-2">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="font-semibold">{cp.name}</p>
+                      <p className="text-xs text-muted-foreground">{cp.trade_name || cp.legal_name || '—'}</p>
                     </div>
                   </div>
+                  <span className={`text-[11px] px-2 py-1 rounded-full ${itemBadge(cp)}`}>{cp.type}</span>
                 </div>
+                <p className="text-xs text-muted-foreground">{cp.country || 'País não informado'} • {cp.base_currency || 'Moeda não definida'}</p>
+                <p className="text-xs text-muted-foreground">{cp.contact_name || 'Contato não informado'} • {cp.contact_email || 'sem e-mail'}</p>
               </div>
-
-              <div className="space-y-2 text-sm border-t pt-4">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Contato:</span>
-                  <span className="text-right">{cp.contact_name || '-'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Email:</span>
-                  <span
-                    className="text-right truncate max-w-[180px]"
-                    title={cp.contact_email || ''}
-                  >
-                    {cp.contact_email || '-'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Telefone:</span>
-                  <span className="text-right">{cp.contact_phone || '-'}</span>
-                </div>
-              </div>
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
-
-      {!loadingCounterparties && counterparties.length === 0 && (
-        <div className="text-center py-12 text-muted-foreground bg-card border rounded-lg">
-          Nenhuma contraparte cadastrada
-        </div>
-      )}
     </div>
   );
 };

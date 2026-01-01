@@ -1,85 +1,65 @@
-# Alcast Hedge Control – README Corporativo
+# Alcast Hedge Control
 
-## Visão geral
-Plataforma corporativa para gestão de POs/SOs, RFQs, hedges (MTM), contrapartes e KYC/KYP. Backend em FastAPI + PostgreSQL, frontend em React/Vite, com perfis RBAC (admin, compras, vendas, financeiro, estoque) e autenticação JWT.
+## Overview
 
-## Stack
-- Backend: Python 3.12, FastAPI, SQLAlchemy, Alembic, PostgreSQL (SQLite apenas para testes), JWT.
-- Frontend: React 18, Vite, Tailwind/Radix/MUI.
+Corporate platform for managing purchase and sales orders (PO/SO),
+risk exposures, RFQs, hedging decisions and MTM valuation.
 
-## Ambientes
-- Dev: uso local com Docker Postgres (porta 5433) e `.env` próprio.
-- Stage/Prod: `.env` separados, secrets fortes, CORS restrito, mocks desativados.
+The system is designed to support financial governance,
+risk visibility and decision-making in commodities operations,
+with clear separation of responsibilities between
+Purchases, Sales and Finance.
 
-## Backend
-### Setup
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-alembic upgrade head
-uvicorn app.main:app --port 8000
-```
+## Core Capabilities
 
-### Variáveis (.env)
-- DATABASE_URL=postgresql+psycopg://user:password@host:5433/alcast_db
-- SECRET_KEY=<valor forte>
-- API_V1_STR=/api/v1
-- BACKEND_CORS_ORIGINS=["http://localhost:5173","https://<seu-dominio>"]
-- STORAGE_DIR=storage
+- PO/SO lifecycle management.
+- Automatic generation of passive (PO) and active (SO) exposures.
+- Time-based exposure consolidation by commodity and period.
+- Manual, governed hedging with partial or total coverage.
+- Net exposure calculation.
+- Mark-to-Market (MTM) with immutable historical snapshots.
+- RFQ management and multi-counterparty quote comparison.
+- Role-based access control (RBAC).
 
-### Logs
-- Logging básico estruturado (startup, RFQ criação/envio, root health).
-- Exceções via uvicorn; ajustar nível via LOGGING config se necessário.
+## Architecture
 
-### Migrações
-- Aplicar: `cd backend && alembic upgrade head`
-- Seeds: criar usuários via `/auth/signup` (role admin para gerir). Documente seeds usados em ambientes compartilhados.
+- Backend: FastAPI, SQLAlchemy, PostgreSQL.
+- Frontend: React (Vite).
+- Authentication: JWT with RBAC.
+- Persistence: Relational database with migrations.
 
-## Frontend
-### Setup
-```bash
-npm install
-npm run dev -- --host --port 5173
-```
+## Environments
 
-### Variáveis (.env)
-- VITE_API_URL=http://localhost:8000
-- VITE_API_PREFIX=/api/v1
-- VITE_USE_MOCK_DATA=false (true apenas para demos sem backend)
+The system supports isolated environments (dev, stage, prod),
+with environment-specific configuration and secrets.
 
-### Comandos
-- Dev: `npm run dev -- --host --port 5173`
-- Build: `npm run build`
-- Teste smoke: `npm run test`
+Runtime setup, environment variables and operational procedures
+are documented outside this README.
 
-## Execução conjunta
-```bash
-bash run-dev.sh
-```
+## Documentation Governance
 
-## Mocks x Produção
-- Frontend: `VITE_USE_MOCK_DATA=true` usa `src/contexts/mockData.ts` e ignora backend (não usar em prod).
-- Backend: KYC/credit check é mock (documentar ao negócio).
+The following files are the ONLY authoritative sources of truth:
 
-## Backups e retenção (recomendação mínima)
-- Banco: backup diário (pg_dump) com retenção de 30 dias; armazenar em bucket seguro.
-- Storage uploads: snapshots semanais do diretório `storage/` (ou volume) com retenção de 30 dias.
+- README.md — project overview (this file)
+- AI_CONTEXT.md — rules for development and AI agents
+- PROJECT_STATE.md — current product state and completed milestones
+- SPRINTS.md — sprint history and closed decisions
 
-## Observabilidade
-- Logs estruturados básicos; health em `GET /`.
-- Sem tracing distribuído; adicionar se requerido pelo ambiente.
+All other documentation must be considered non-authoritative
+unless explicitly referenced.
 
-## Dependências
-- Backend: `requirements.txt` + `pytest` (tests). Considerar lockfile para produção (pip-tools/poetry) se a política exigir.
-- Frontend: package.json com scripts e Vitest para smoke; rodar `npm install` consistente (usar lockfile do gerenciador escolhido).
+## Development & Operations
 
-## Políticas e governança
-- Siga `AI_CONTEXT.md` para regras de contribuição e decisões.
-- Não exponha secrets em commits.
-- Mantenha migrações sincronizadas entre ambientes (dev/stage/prod).
+Detailed setup instructions, environment variables,
+deployment procedures, backups and operational runbooks
+are intentionally excluded from this README.
 
-## Contatos e handover
-- Documentar credenciais de serviços (em vault seguro) e endpoints usados por ambiente.
-- Checklist de handover: `.env` de cada ambiente, comandos de deploy, política de backup, seeds de usuários admin.
+Refer to the appropriate documentation under `/docs`
+or to the files listed above.
+
+## Contribution Rules
+
+- Follow the principles defined in `AI_CONTEXT.md`.
+- Do not introduce demo-only behavior without explicit documentation.
+- Do not commit secrets or environment-specific credentials.
+- Keep domain logic and product behavior consistent across environments.

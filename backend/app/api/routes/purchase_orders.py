@@ -8,6 +8,7 @@ from app.database import get_db
 from app import models
 from app.schemas import PurchaseOrderCreate, PurchaseOrderRead, PurchaseOrderUpdate
 from app.api.deps import require_roles
+from app.services.deal_engine import link_purchase_order_to_deal
 
 router = APIRouter(prefix="/purchase-orders", tags=["purchase_orders"])
 
@@ -39,6 +40,13 @@ def create_purchase_order(
     supplier = db.get(models.Supplier, payload.supplier_id)
     if not supplier:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Supplier not found")
+
+    if payload.deal_id is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="deal_id is required for purchase orders")
+    if not db.get(models.Deal, payload.deal_id):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Deal not found")
+    if payload.unit_price is not None and payload.unit_price <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Preço unitário deve ser positivo.")
 
     po_number = payload.po_number or _generate_po_number()
 
@@ -79,6 +87,11 @@ def create_purchase_order(
     task = models.HedgeTask(exposure_id=exposure.id)
     db.add(task)
 
+    try:
+        link_purchase_order_to_deal(db, po, payload.deal_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
     db.commit()
     db.refresh(po)
     return po
@@ -113,6 +126,8 @@ def update_purchase_order(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Purchase Order not found")
 
     data = payload.dict(exclude_unset=True)
+    # deal_id is used only for linking, not stored on PO
+    data.pop("deal_id", None)
     for field, value in data.items():
         setattr(po, field, value)
 

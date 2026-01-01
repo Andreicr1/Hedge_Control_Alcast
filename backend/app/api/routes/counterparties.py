@@ -27,14 +27,7 @@ def create_counterparty(
 ):
     if db.query(models.Counterparty).filter(models.Counterparty.name == payload.name).first():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Counterparty already exists")
-    cp = models.Counterparty(
-        name=payload.name,
-        type=payload.type,
-        contact_name=payload.contact_name,
-        contact_email=payload.contact_email,
-        contact_phone=payload.contact_phone,
-        active=payload.active,
-    )
+    cp = models.Counterparty(**payload.dict(exclude_unset=True))
     db.add(cp)
     db.commit()
     db.refresh(cp)

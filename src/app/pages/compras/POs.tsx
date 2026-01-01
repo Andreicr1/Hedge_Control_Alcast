@@ -85,17 +85,21 @@ export const ComprasPOs = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.supplier_id || Number(formData.total_quantity_mt) <= 0 || Number(formData.unit_price) <= 0) {
+      toast.error('Dados inválidos. Verifique quantidade, preço e fornecedor.');
+      return;
+    }
     setSaving(true);
     try {
-      await purchaseOrdersService.create({
-        supplier_id: Number(formData.supplier_id),
-        product: formData.product,
-        total_quantity_mt: Number(formData.total_quantity_mt),
-        unit: formData.unit,
-        unit_price: Number(formData.unit_price),
-        pricing_type: formData.pricing_type,
-        pricing_period: formData.pricing_period,
-        lme_premium: Number(formData.lme_premium),
+          await purchaseOrdersService.create({
+            supplier_id: Number(formData.supplier_id),
+            product: formData.product,
+            total_quantity_mt: Number(formData.total_quantity_mt),
+            unit: formData.unit,
+            unit_price: Number(formData.unit_price),
+            pricing_type: formData.pricing_type,
+            pricing_period: formData.pricing_period,
+            lme_premium: Number(formData.lme_premium),
         premium: Number(formData.premium),
         reference_price: formData.reference_price,
         fixing_deadline: formData.fixing_deadline || undefined,
@@ -147,12 +151,12 @@ export const ComprasPOs = () => {
               <form className="space-y-4" onSubmit={handleCreate}>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-2 text-sm">Fornecedor *</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Fornecedor *</label>
                     <select
                       required
                       value={formData.supplier_id}
                       onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
                       disabled={loadingSuppliers}
                     >
                       <option value="">Selecione</option>
@@ -164,12 +168,12 @@ export const ComprasPOs = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block mb-2 text-sm">Produto *</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Produto *</label>
                     <input
                       required
                       value={formData.product}
                       onChange={(e) => setFormData({ ...formData, product: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
                       placeholder="Billets, T-bars..."
                     />
                   </div>
@@ -177,42 +181,42 @@ export const ComprasPOs = () => {
 
                 <div className="grid md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block mb-2 text-sm">Quantidade *</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Quantidade *</label>
                     <input
                       type="number"
                       required
                       value={formData.total_quantity_mt}
                       onChange={(e) => setFormData({ ...formData, total_quantity_mt: Number(e.target.value) })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-sm">Unidade</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Unidade</label>
                     <input
                       value={formData.unit}
                       onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-sm">Preço Unitário</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Preço Unitário</label>
                     <input
                       type="number"
                       step="0.01"
                       value={formData.unit_price}
                       onChange={(e) => setFormData({ ...formData, unit_price: Number(e.target.value) })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block mb-2 text-sm">Tipo de Precificação</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Tipo de Precificação</label>
                     <select
                       value={formData.pricing_type}
                       onChange={(e) => setFormData({ ...formData, pricing_type: e.target.value as PricingType })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
                     >
                       <option value={PricingType.FIXED}>Fixo</option>
                       <option value={PricingType.TBF}>TBF</option>
@@ -221,92 +225,92 @@ export const ComprasPOs = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block mb-2 text-sm">Período</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Período</label>
                     <input
                       value={formData.pricing_period}
                       onChange={(e) => setFormData({ ...formData, pricing_period: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
                       placeholder="M+1"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-sm">LME Premium</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">LME Premium</label>
                     <input
                       type="number"
                       step="0.01"
                       value={formData.lme_premium}
                       onChange={(e) => setFormData({ ...formData, lme_premium: Number(e.target.value) })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block mb-2 text-sm">Premium</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Premium</label>
                     <input
                       type="number"
                       step="0.01"
                       value={formData.premium}
                       onChange={(e) => setFormData({ ...formData, premium: Number(e.target.value) })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-sm">Preço de Referência</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Preço de Referência</label>
                     <input
                       value={formData.reference_price}
                       onChange={(e) => setFormData({ ...formData, reference_price: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-sm">Data Limite Fixação</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Data Limite Fixação</label>
                     <input
                       type="date"
                       value={formData.fixing_deadline}
                       onChange={(e) => setFormData({ ...formData, fixing_deadline: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block mb-2 text-sm">Entrega Prevista</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Entrega Prevista</label>
                     <input
                       type="date"
                       value={formData.expected_delivery_date}
                       onChange={(e) => setFormData({ ...formData, expected_delivery_date: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-sm">Localização</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Localização</label>
                     <input
                       value={formData.location}
                       onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-sm">Custo Médio</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700">Custo Médio</label>
                     <input
                       type="number"
                       step="0.01"
                       value={formData.avg_cost}
                       onChange={(e) => setFormData({ ...formData, avg_cost: Number(e.target.value) })}
-                      className="w-full px-4 py-2 border rounded-md bg-background"
+                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block mb-2 text-sm">Notas</label>
+                  <label className="block mb-1 text-sm font-semibold text-gray-700">Notas</label>
                   <textarea
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-md bg-background"
+                    className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
                     rows={3}
                   />
                 </div>

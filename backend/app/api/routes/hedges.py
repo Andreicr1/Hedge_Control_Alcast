@@ -7,6 +7,7 @@ from app.database import get_db
 from app import models
 from app.schemas import HedgeCreate, HedgeRead, HedgeUpdate
 from app.api.deps import require_roles
+from app.services.deal_engine import link_hedge_to_deal
 
 router = APIRouter(prefix="/hedges", tags=["hedges"])
 
@@ -29,6 +30,12 @@ def create_hedge(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Sales Order not found")
     if not db.get(models.Counterparty, payload.counterparty_id):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Counterparty not found")
+    if payload.deal_id is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="deal_id is required for hedge linking")
+    if payload.quantity_mt <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Quantidade deve ser positiva.")
+    if payload.contract_price <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Preço de contrato deve ser positivo.")
 
     hedge = models.Hedge(
         so_id=payload.so_id,
@@ -41,6 +48,11 @@ def create_hedge(
         status=payload.status,
     )
     db.add(hedge)
+    db.flush()
+    try:
+        link_hedge_to_deal(db, hedge, payload.deal_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
     db.commit()
     db.refresh(hedge)
     return hedge
@@ -58,8 +70,20 @@ def update_hedge(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hedge not found")
 
     data = payload.dict(exclude_unset=True)
+    # deal_id is used only for linking, not a Hedge column
+    deal_id = data.pop("deal_id", None)
+    if "quantity_mt" in data and data["quantity_mt"] is not None and data["quantity_mt"] <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Quantidade deve ser positiva.")
+    if "contract_price" in data and data["contract_price"] is not None and data["contract_price"] <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Preço de contrato deve ser positivo.")
     for field, value in data.items():
         setattr(hedge, field, value)
+
+    if deal_id is not None:
+        try:
+            link_hedge_to_deal(db, hedge, deal_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
     db.add(hedge)
     db.commit()

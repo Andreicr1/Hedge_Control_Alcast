@@ -1,4 +1,5 @@
 from datetime import datetime, date
+import uuid
 from enum import Enum as PyEnum
 
 from sqlalchemy import Boolean, Date, DateTime, Enum, Float, ForeignKey, Integer, JSON, String, Text, func
@@ -90,6 +91,49 @@ class HedgeTaskStatus(PyEnum):
     cancelled = "cancelled"
 
 
+class DealLifecycleStatus(PyEnum):
+    open = "open"
+    partially_hedged = "partially_hedged"
+    hedged = "hedged"
+    closed = "closed"
+
+
+class WhatsAppDirection(PyEnum):
+    inbound = "inbound"
+    outbound = "outbound"
+
+
+class WhatsAppStatus(PyEnum):
+    queued = "queued"
+    sent = "sent"
+    delivered = "delivered"
+    failed = "failed"
+    received = "received"
+
+
+class DealStatus(PyEnum):
+    open = "open"
+    partially_fixed = "partially_fixed"
+    fixed = "fixed"
+    settled = "settled"
+
+
+class DealEntityType(PyEnum):
+    so = "so"
+    po = "po"
+    hedge = "hedge"
+
+
+class DealDirection(PyEnum):
+    buy = "buy"
+    sell = "sell"
+
+
+class DealAllocationType(PyEnum):
+    auto = "auto"
+    manual = "manual"
+
+
 class Role(Base):
     __tablename__ = "roles"
 
@@ -119,20 +163,33 @@ class Supplier(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    trade_name: Mapped[str | None] = mapped_column(String(255))
     code: Mapped[str | None] = mapped_column(String(32), unique=True)
     legal_name: Mapped[str | None] = mapped_column(String(255))
+    entity_type: Mapped[str | None] = mapped_column(String(64))
     tax_id: Mapped[str | None] = mapped_column(String(32))
+    tax_id_type: Mapped[str | None] = mapped_column(String(32))
+    tax_id_country: Mapped[str | None] = mapped_column(String(32))
     state_registration: Mapped[str | None] = mapped_column(String(64))
     address_line: Mapped[str | None] = mapped_column(String(255))
     city: Mapped[str | None] = mapped_column(String(128))
     state: Mapped[str | None] = mapped_column(String(8))
+    country: Mapped[str | None] = mapped_column(String(64))
     postal_code: Mapped[str | None] = mapped_column(String(32))
+    country_incorporation: Mapped[str | None] = mapped_column(String(64))
+    country_operation: Mapped[str | None] = mapped_column(String(64))
+    country_residence: Mapped[str | None] = mapped_column(String(64))
     credit_limit: Mapped[float | None] = mapped_column(Float)
     credit_score: Mapped[int | None] = mapped_column(Integer)
     kyc_status: Mapped[str | None] = mapped_column(String(32), default="pending")
     kyc_notes: Mapped[str | None] = mapped_column(Text)
     contact_email: Mapped[str | None] = mapped_column(String(255))
     contact_phone: Mapped[str | None] = mapped_column(String(64))
+    base_currency: Mapped[str | None] = mapped_column(String(8))
+    payment_terms: Mapped[str | None] = mapped_column(String(128))
+    risk_rating: Mapped[str | None] = mapped_column(String(64))
+    sanctions_flag: Mapped[bool | None] = mapped_column(Boolean)
+    internal_notes: Mapped[str | None] = mapped_column(Text)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -145,20 +202,33 @@ class Customer(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    trade_name: Mapped[str | None] = mapped_column(String(255))
     code: Mapped[str | None] = mapped_column(String(32), unique=True)
     legal_name: Mapped[str | None] = mapped_column(String(255))
+    entity_type: Mapped[str | None] = mapped_column(String(64))
     tax_id: Mapped[str | None] = mapped_column(String(32))
+    tax_id_type: Mapped[str | None] = mapped_column(String(32))
+    tax_id_country: Mapped[str | None] = mapped_column(String(32))
     state_registration: Mapped[str | None] = mapped_column(String(64))
     address_line: Mapped[str | None] = mapped_column(String(255))
     city: Mapped[str | None] = mapped_column(String(128))
     state: Mapped[str | None] = mapped_column(String(8))
+    country: Mapped[str | None] = mapped_column(String(64))
     postal_code: Mapped[str | None] = mapped_column(String(32))
+    country_incorporation: Mapped[str | None] = mapped_column(String(64))
+    country_operation: Mapped[str | None] = mapped_column(String(64))
+    country_residence: Mapped[str | None] = mapped_column(String(64))
     credit_limit: Mapped[float | None] = mapped_column(Float)
     credit_score: Mapped[int | None] = mapped_column(Integer)
     kyc_status: Mapped[str | None] = mapped_column(String(32), default="pending")
     kyc_notes: Mapped[str | None] = mapped_column(Text)
     contact_email: Mapped[str | None] = mapped_column(String(255))
     contact_phone: Mapped[str | None] = mapped_column(String(64))
+    base_currency: Mapped[str | None] = mapped_column(String(8))
+    payment_terms: Mapped[str | None] = mapped_column(String(128))
+    risk_rating: Mapped[str | None] = mapped_column(String(64))
+    sanctions_flag: Mapped[bool | None] = mapped_column(Boolean)
+    internal_notes: Mapped[str | None] = mapped_column(Text)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -183,6 +253,7 @@ class PurchaseOrder(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     po_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    deal_id: Mapped[int | None] = mapped_column(ForeignKey("deals.id"), nullable=True, index=True)
     supplier_id: Mapped[int] = mapped_column(ForeignKey("suppliers.id"), nullable=False)
     product: Mapped[str | None] = mapped_column(String(255))
     total_quantity_mt: Mapped[float] = mapped_column(Float, nullable=False)
@@ -210,6 +281,7 @@ class SalesOrder(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     so_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    deal_id: Mapped[int | None] = mapped_column(ForeignKey("deals.id"), nullable=True, index=True)
     customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), nullable=False)
     product: Mapped[str | None] = mapped_column(String(255))
     total_quantity_mt: Mapped[float] = mapped_column(Float, nullable=False)
@@ -238,10 +310,31 @@ class Counterparty(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    rfq_channel_type: Mapped[str | None] = mapped_column(String(32), default="BROKER_LME")
     type: Mapped[CounterpartyType] = mapped_column(Enum(CounterpartyType), nullable=False)
+    trade_name: Mapped[str | None] = mapped_column(String(255))
+    legal_name: Mapped[str | None] = mapped_column(String(255))
+    entity_type: Mapped[str | None] = mapped_column(String(64))
     contact_name: Mapped[str | None] = mapped_column(String(255))
     contact_email: Mapped[str | None] = mapped_column(String(255))
     contact_phone: Mapped[str | None] = mapped_column(String(64))
+    address_line: Mapped[str | None] = mapped_column(String(255))
+    city: Mapped[str | None] = mapped_column(String(128))
+    state: Mapped[str | None] = mapped_column(String(64))
+    country: Mapped[str | None] = mapped_column(String(64))
+    postal_code: Mapped[str | None] = mapped_column(String(32))
+    country_incorporation: Mapped[str | None] = mapped_column(String(64))
+    country_operation: Mapped[str | None] = mapped_column(String(64))
+    tax_id: Mapped[str | None] = mapped_column(String(64))
+    tax_id_type: Mapped[str | None] = mapped_column(String(32))
+    tax_id_country: Mapped[str | None] = mapped_column(String(32))
+    base_currency: Mapped[str | None] = mapped_column(String(8))
+    payment_terms: Mapped[str | None] = mapped_column(String(128))
+    risk_rating: Mapped[str | None] = mapped_column(String(64))
+    sanctions_flag: Mapped[bool | None] = mapped_column(Boolean)
+    kyc_status: Mapped[str | None] = mapped_column(String(32))
+    kyc_notes: Mapped[str | None] = mapped_column(Text)
+    internal_notes: Mapped[str | None] = mapped_column(Text)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -249,20 +342,70 @@ class Counterparty(Base):
     quotes = relationship("RfqQuote", back_populates="counterparty")
 
 
+class WhatsAppMessage(Base):
+    __tablename__ = "whatsapp_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    rfq_id: Mapped[int | None] = mapped_column(ForeignKey("rfqs.id"), nullable=True, index=True)
+    counterparty_id: Mapped[int | None] = mapped_column(ForeignKey("counterparties.id"), nullable=True, index=True)
+    direction: Mapped[WhatsAppDirection] = mapped_column(Enum(WhatsAppDirection), nullable=False)
+    status: Mapped[WhatsAppStatus] = mapped_column(Enum(WhatsAppStatus), default=WhatsAppStatus.queued, nullable=False)
+    message_id: Mapped[str | None] = mapped_column(String(128), index=True)
+    phone: Mapped[str | None] = mapped_column(String(32))
+    content_text: Mapped[str | None] = mapped_column(Text)
+    raw_payload: Mapped[dict | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    rfq = relationship("Rfq", back_populates="whatsapp_messages")
+    counterparty = relationship("Counterparty", viewonly=True)
+
+
 class Rfq(Base):
     __tablename__ = "rfqs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    deal_id: Mapped[int | None] = mapped_column(ForeignKey("deals.id"), nullable=True, index=True)
     rfq_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     so_id: Mapped[int] = mapped_column(ForeignKey("sales_orders.id"), nullable=False)
     quantity_mt: Mapped[float] = mapped_column(Float, nullable=False)
     period: Mapped[str] = mapped_column(String(20), nullable=False)
     status: Mapped[RfqStatus] = mapped_column(Enum(RfqStatus), default=RfqStatus.pending, nullable=False)
     message_text: Mapped[str | None] = mapped_column(Text)
+    winner_quote_id: Mapped[int | None] = mapped_column(ForeignKey("rfq_quotes.id"))
+    decision_reason: Mapped[str | None] = mapped_column(Text)
+    decided_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    winner_rank: Mapped[int | None] = mapped_column(Integer)
+    hedge_id: Mapped[int | None] = mapped_column(ForeignKey("hedges.id"))
+    hedge_reference: Mapped[str | None] = mapped_column(String(128))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     sales_order = relationship("SalesOrder", back_populates="rfqs")
     counterparty_quotes = relationship("RfqQuote", back_populates="rfq", cascade="all, delete-orphan")
+    invitations = relationship("RfqInvitation", back_populates="rfq", cascade="all, delete-orphan")
+    winner_quote = relationship("RfqQuote", foreign_keys=[winner_quote_id], viewonly=True)
+    decided_by_user = relationship("User", foreign_keys=[decided_by], viewonly=True)
+    hedge = relationship("Hedge", foreign_keys=[hedge_id], viewonly=True)
+    whatsapp_messages = relationship("WhatsAppMessage", back_populates="rfq", cascade="all, delete-orphan")
+
+
+class Contract(Base):
+    __tablename__ = "contracts"
+
+    contract_id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    deal_id: Mapped[int] = mapped_column(ForeignKey("deals.id"), nullable=False, index=True)
+    rfq_id: Mapped[int] = mapped_column(ForeignKey("rfqs.id"), nullable=False, index=True)
+    counterparty_id: Mapped[int | None] = mapped_column(ForeignKey("counterparties.id"), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="active")
+    trade_index: Mapped[int | None] = mapped_column(Integer)
+    quote_group_id: Mapped[str | None] = mapped_column(String(64))
+    trade_snapshot: Mapped[dict] = mapped_column(JSON, nullable=False)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    deal = relationship("Deal", viewonly=True)
+    rfq = relationship("Rfq", viewonly=True)
+    counterparty = relationship("Counterparty", viewonly=True)
 
 
 class RfqQuote(Base):
@@ -273,11 +416,35 @@ class RfqQuote(Base):
     counterparty_id: Mapped[int | None] = mapped_column(ForeignKey("counterparties.id"))
     counterparty_name: Mapped[str | None] = mapped_column(String(255))
     quote_price: Mapped[float] = mapped_column(Float, nullable=False)
+    price_type: Mapped[str | None] = mapped_column(String(128))
+    volume_mt: Mapped[float | None] = mapped_column(Float)
+    valid_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    notes: Mapped[str | None] = mapped_column(Text)
+    channel: Mapped[str | None] = mapped_column(String(64))
     status: Mapped[str] = mapped_column(String(32), default="quoted")
+    quote_group_id: Mapped[str | None] = mapped_column(String(64), index=True)
+    leg_side: Mapped[str | None] = mapped_column(String(8))  # buy | sell
     quoted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     rfq = relationship("Rfq", back_populates="counterparty_quotes")
     counterparty = relationship("Counterparty", back_populates="quotes")
+
+
+class RfqInvitation(Base):
+    __tablename__ = "rfq_invitations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    rfq_id: Mapped[int] = mapped_column(ForeignKey("rfqs.id"), nullable=False)
+    counterparty_id: Mapped[int] = mapped_column(ForeignKey("counterparties.id"), nullable=False)
+    counterparty_name: Mapped[str | None] = mapped_column(String(255))
+    status: Mapped[str] = mapped_column(String(32), default="sent")
+    sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    message_text: Mapped[str | None] = mapped_column(Text)
+
+    rfq = relationship("Rfq", back_populates="invitations")
+    counterparty = relationship("Counterparty")
 
 
 class Hedge(Base):
@@ -422,3 +589,49 @@ class HedgeExposure(Base):
 
     hedge = relationship("Hedge", back_populates="exposure_links")
     exposure = relationship("Exposure", back_populates="hedge_links")
+
+
+class Deal(Base):
+    __tablename__ = "deals"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    deal_uuid: Mapped[str] = mapped_column(String(36), unique=True, default=lambda: str(uuid.uuid4()))
+    commodity: Mapped[str | None] = mapped_column(String(255))
+    currency: Mapped[str] = mapped_column(String(8), default="USD")
+    status: Mapped[DealStatus] = mapped_column(Enum(DealStatus), default=DealStatus.open, nullable=False)
+    lifecycle_status: Mapped[DealLifecycleStatus] = mapped_column(Enum(DealLifecycleStatus), default=DealLifecycleStatus.open, nullable=False)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    links = relationship("DealLink", back_populates="deal", cascade="all, delete-orphan")
+    pnl_snapshots = relationship("DealPNLSnapshot", back_populates="deal", cascade="all, delete-orphan")
+
+
+class DealLink(Base):
+    __tablename__ = "deal_links"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    deal_id: Mapped[int] = mapped_column(ForeignKey("deals.id"), nullable=False, index=True)
+    entity_type: Mapped[DealEntityType] = mapped_column(Enum(DealEntityType), nullable=False)
+    entity_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    direction: Mapped[DealDirection] = mapped_column(Enum(DealDirection), nullable=False)
+    quantity_mt: Mapped[float | None] = mapped_column(Float)
+    allocation_type: Mapped[DealAllocationType] = mapped_column(Enum(DealAllocationType), default=DealAllocationType.auto, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    deal = relationship("Deal", back_populates="links")
+
+
+class DealPNLSnapshot(Base):
+    __tablename__ = "deal_pnl_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    deal_id: Mapped[int] = mapped_column(ForeignKey("deals.id"), nullable=False, index=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    physical_revenue: Mapped[float] = mapped_column(Float, default=0.0)
+    physical_cost: Mapped[float] = mapped_column(Float, default=0.0)
+    hedge_pnl_realized: Mapped[float] = mapped_column(Float, default=0.0)
+    hedge_pnl_mtm: Mapped[float] = mapped_column(Float, default=0.0)
+    net_pnl: Mapped[float] = mapped_column(Float, default=0.0)
+
+    deal = relationship("Deal", back_populates="pnl_snapshots")

@@ -22,7 +22,17 @@ import {
 } from '../../components/ui/dropdown-menu';
 import { useLocation } from 'react-router-dom';
 import { rfqsService } from '../../../services/rfqsService';
-import { RfqPreviewLeg, RfqPreviewRequest, RfqPriceType } from '../../types/api';
+import {
+  RfqInvitation,
+  RfqInvitationStatus,
+  RfqOrderType,
+  RfqPreviewLeg,
+  RfqPreviewRequest,
+  RfqPriceType,
+  RfqStatus,
+  RfqSide,
+} from '../../../types/api';
+import { useData } from '../../../contexts/DataContextAPI';
 
 interface Trade {
   id: number;
@@ -36,16 +46,19 @@ interface Trade {
 
 interface TradeLeg {
   side: 'buy' | 'sell';
-  priceType: '' | 'AVG' | 'AVGInter' | 'Fix' | 'C2R';
+  priceType: '' | RfqPriceType;
   month: string;
   year: string;
   startDate: string;
   endDate: string;
   fixingDate: string;
-  orderType: '' | 'At Market' | 'Limit' | 'Resting';
+  orderType: RfqOrderType;
   orderValidity: '' | 'Day' | 'GTC' | '3 Hours' | '6 Hours' | '12 Hours' | 'Until Further Notice';
   limitPrice: number;
 }
+
+type InvitationStatus = RfqInvitation['status'];
+type Invitation = RfqInvitation & { quote_price?: number };
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -58,11 +71,23 @@ const getCurrentYears = () => {
 };
 
 export const NovoRFQ = () => {
+  const { counterparties, salesOrders, fetchRfqs } = useData();
   const [company, setCompany] = useState<'Alcast Brasil' | 'Alcast Trading'>('Alcast Brasil');
   const [trades, setTrades] = useState<Trade[]>([]);
   const [finalOutput, setFinalOutput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [savingRfq, setSavingRfq] = useState(false);
+  const [rfqSide, setRfqSide] = useState<RfqSide>('buy');
+  const [rfqMessage, setRfqMessage] = useState('');
+  const [rfqPeriod, setRfqPeriod] = useState('');
+  const [rfqQuantity, setRfqQuantity] = useState<number>(0);
+  const [selectedSO, setSelectedSO] = useState<string>('');
+  const [selectedCounterparties, setSelectedCounterparties] = useState<number[]>([]);
+  const [selectAll, setSelectAll] = useState(false);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [createdRfqId, setCreatedRfqId] = useState<number | null>(null);
   const location = useLocation();
   const sourceInfo = (location.state as any) || {};
 
@@ -80,14 +105,14 @@ export const NovoRFQ = () => {
     side,
     priceType: '',
     month: MONTHS[new Date().getMonth()],
-    year: new Date().getFullYear().toString(),
-    startDate: '',
-    endDate: '',
-    fixingDate: '',
-    orderType: 'At Market',
-    orderValidity: '',
-    limitPrice: 0,
-  });
+  year: new Date().getFullYear().toString(),
+  startDate: '',
+  endDate: '',
+  fixingDate: '',
+  orderType: 'At Market',
+  orderValidity: '',
+  limitPrice: 0,
+});
 
   useEffect(() => {
     if (trades.length === 0) {
@@ -163,7 +188,7 @@ export const NovoRFQ = () => {
       throw new Error('Selecione o Price Type em todas as legs.');
     }
 
-    const priceType = leg.priceType as RfqPriceType;
+    const priceType = leg.priceType;
     const base: RfqPreviewLeg = {
       side: leg.side,
       price_type: priceType,
@@ -273,33 +298,359 @@ export const NovoRFQ = () => {
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
+  useEffect(() => {
+    if (salesOrders.length && !selectedSO) {
+      const first = salesOrders[0];
+      setSelectedSO(String(first.id));
+      setRfqQuantity(first.total_quantity_mt || 0);
+      setRfqPeriod(first.pricing_period || '');
+    }
+  }, [salesOrders, selectedSO]);
+
+  useEffect(() => {
+    if (selectAll) {
+      setSelectedCounterparties(counterparties.map((c) => c.id));
+    }
+  }, [selectAll, counterparties]);
+
+  const toggleCounterparty = (id: number) => {
+    setSelectAll(false);
+    setSelectedCounterparties((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
+    );
+  };
+
+  const buildInvitations = (): Invitation[] => {
+    const ids = selectAll ? counterparties.map((c) => c.id) : selectedCounterparties;
+    const unique = Array.from(new Set(ids));
+    return unique.map((id) => ({
+      counterparty_id: id,
+      counterparty_name: counterparties.find((c) => c.id === id)?.name || 'Contraparte',
+      status: 'sent',
+    }));
+  };
+
+  const handleCreateRfq = async () => {
+    setError(null);
+    setStatusMessage(null);
+    if (!selectedSO || !rfqPeriod || !rfqQuantity) {
+      setError('Preencha SO, período e quantidade antes de enviar.');
+      return;
+    }
+    const invitePayload = buildInvitations();
+    if (!invitePayload.length) {
+      setError('Selecione ao menos uma contraparte.');
+      return;
+    }
+
+    const rfqNumber = `RFQ-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`;
+    setSavingRfq(true);
+    try {
+      const invitePayload = buildInvitations();
+      const created = await rfqsService.create({
+        rfq_number: rfqNumber,
+        so_id: Number(selectedSO),
+        quantity_mt: rfqQuantity,
+        period: rfqPeriod,
+        side: rfqSide,
+        status: RfqStatus.PENDING,
+        message_text: rfqMessage || undefined,
+        invitations: invitePayload.map((inv) => ({
+          counterparty_id: inv.counterparty_id,
+          counterparty_name: inv.counterparty_name,
+          status: 'sent',
+        })),
+        counterparty_quotes: [],
+      });
+      setInvitations(created.invitations || invitePayload);
+      setCreatedRfqId(created.id);
+      setStatusMessage('Convites enviados. Registre as respostas conforme chegarem.');
+      fetchRfqs();
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail;
+      setError(detail || 'Falha ao criar o RFQ.');
+    } finally {
+      setSavingRfq(false);
+    }
+  };
+
+  const handleQuoteCapture = async (invitation: Invitation, quoteValue?: number, nextStatus?: InvitationStatus) => {
+    setInvitations((prev) =>
+      prev.map((inv) =>
+        inv.counterparty_id === invitation.counterparty_id
+          ? { ...inv, quote_price: quoteValue, status: nextStatus || inv.status }
+          : inv,
+      ),
+    );
+
+    if (!createdRfqId || !quoteValue) return;
+    try {
+      await rfqsService.addQuote(createdRfqId, {
+        counterparty_id: invitation.counterparty_id,
+        counterparty_name: invitation.counterparty_name,
+        quote_price: quoteValue,
+        status: nextStatus || 'answered',
+      });
+      setStatusMessage('Resposta registrada e ranking atualizado.');
+      fetchRfqs();
+    } catch (err) {
+      setError('Resposta salva localmente. Não foi possível persistir no backend.');
+    }
+  };
+
+  const sortedInvitations = invitations
+    .filter((inv) => inv.quote_price !== undefined)
+    .sort((a, b) =>
+      rfqSide === 'buy'
+        ? (a.quote_price || 0) - (b.quote_price || 0)
+        : (b.quote_price || 0) - (a.quote_price || 0),
+    );
+
   return (
-    <div className="p-6 space-y-6 bg-slate-50">
+    <div className="p-5 space-y-5 bg-muted/30">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-sky-900">Novo RFQ - Request for Quotation</h2>
-          <p className="text-muted-foreground">Gerador de cotações LME (London Metal Exchange)</p>
+          <h2 className="text-xl font-semibold text-foreground">Novo RFQ</h2>
+          <p className="text-sm text-muted-foreground">Convite único para múltiplas contrapartes</p>
         </div>
         {sourceInfo?.sourceNumber && (
-          <div className="px-3 py-2 bg-emerald-50 text-emerald-800 text-sm rounded-md border border-emerald-100">
+          <div className="px-3 py-2 border text-sm rounded-md bg-card text-foreground">
             Origem: {sourceInfo.sourceType?.toUpperCase()} {sourceInfo.sourceNumber}
           </div>
         )}
       </div>
 
+      {(error || statusMessage) && (
+        <div className={`text-sm px-3 py-2 rounded-md border ${error ? 'border-destructive text-destructive bg-destructive/10' : 'border-emerald-200 text-emerald-700 bg-emerald-50'}`}>
+          {error || statusMessage}
+        </div>
+      )}
+
+      <div className="grid lg:grid-cols-2 gap-4">
+        <Card className="p-4 bg-card border">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-base font-semibold">Configuração</h3>
+            <span className="text-xs text-muted-foreground">Defina o pedido</span>
+          </div>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-sm">Sales Order</Label>
+              <Select value={selectedSO} onValueChange={(value) => setSelectedSO(value)}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Selecione um SO" />
+                </SelectTrigger>
+                <SelectContent>
+                  {salesOrders.map((so) => (
+                    <SelectItem key={so.id} value={String(so.id)}>
+                      {so.so_number} • {so.product || 'Produto'} • {so.total_quantity_mt} MT
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-sm">Quantidade (MT)</Label>
+                <Input
+                  type="number"
+                  value={rfqQuantity || ''}
+                  onChange={(e) => setRfqQuantity(parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm">Período</Label>
+                <Input
+                  value={rfqPeriod}
+                  onChange={(e) => setRfqPeriod(e.target.value)}
+                  placeholder="YYYY-MM"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm">Lado</Label>
+              <RadioGroup value={rfqSide} onValueChange={(value: any) => setRfqSide(value)}>
+                <div className="flex gap-6">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="buy" id="side-buy" />
+                    <Label htmlFor="side-buy" className="cursor-pointer text-sm">Comprar (hedge passivo)</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="sell" id="side-sell" />
+                    <Label htmlFor="side-sell" className="cursor-pointer text-sm">Vender (hedge ativo)</Label>
+                  </div>
+                </div>
+              </RadioGroup>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-sm">Mensagem breve</Label>
+              <Textarea
+                value={rfqMessage}
+                onChange={(e) => setRfqMessage(e.target.value)}
+                placeholder="Observações aos participantes"
+                className="min-h-[80px]"
+              />
+            </div>
+
+            <Button onClick={handleCreateRfq} size="sm" disabled={savingRfq} className="w-full">
+              {savingRfq ? 'Enviando...' : 'Criar RFQ e disparar convites'}
+            </Button>
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-card border">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-base font-semibold">Contrapartes</h3>
+            <div className="flex items-center gap-2 text-xs">
+              <Checkbox id="select-all-cp" checked={selectAll} onCheckedChange={(checked) => setSelectAll(!!checked)} />
+              <Label htmlFor="select-all-cp" className="cursor-pointer">Selecionar todas</Label>
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
+            {counterparties.map((cp) => (
+              <label key={cp.id} className="flex items-center gap-2 text-sm px-3 py-2 border rounded-md bg-background cursor-pointer">
+                <Checkbox
+                  checked={selectAll || selectedCounterparties.includes(cp.id)}
+                  onCheckedChange={() => toggleCounterparty(cp.id)}
+                />
+                <div className="flex flex-col">
+                  <span className="font-medium">{cp.name}</span>
+                  <span className="text-[11px] text-muted-foreground">{cp.contact_email || cp.contact_phone || 'Contato não informado'}</span>
+                </div>
+              </label>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      <Card className="p-4 bg-card border space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-semibold">Convites e respostas</h3>
+            <p className="text-xs text-muted-foreground">Status: enviado, respondido, expirado, recusado</p>
+          </div>
+          <span className="text-xs text-muted-foreground">{invitations.length || 0} convites</span>
+        </div>
+
+        {invitations.length === 0 ? (
+          <div className="text-sm text-muted-foreground border rounded-md p-3 bg-muted/40">
+            Nenhuma contraparte selecionada ainda.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="text-left px-3 py-2 border-b">Contraparte</th>
+                  <th className="text-left px-3 py-2 border-b">Status</th>
+                  <th className="text-left px-3 py-2 border-b">Cotação</th>
+                  <th className="text-left px-3 py-2 border-b">Ação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invitations.map((inv) => (
+                  <tr key={inv.counterparty_id} className="border-b last:border-none">
+                    <td className="px-3 py-2">{inv.counterparty_name}</td>
+                    <td className="px-3 py-2">
+                      <Select
+                        value={inv.status}
+                        onValueChange={(value: InvitationStatus) =>
+                          setInvitations((prev) =>
+                            prev.map((item) =>
+                              item.counterparty_id === inv.counterparty_id ? { ...item, status: value } : item,
+                            ),
+                          )
+                        }
+                      >
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="sent">Enviado</SelectItem>
+                          <SelectItem value="answered">Respondido</SelectItem>
+                          <SelectItem value="expired">Expirado</SelectItem>
+                          <SelectItem value="refused">Recusado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </td>
+                    <td className="px-3 py-2">
+                      <Input
+                        type="number"
+                        placeholder="Preço"
+                        value={inv.quote_price ?? ''}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value);
+                          setInvitations((prev) =>
+                            prev.map((item) =>
+                              item.counterparty_id === inv.counterparty_id ? { ...item, quote_price: value } : item,
+                            ),
+                          );
+                        }}
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleQuoteCapture(inv, inv.quote_price, inv.status)}
+                        disabled={!inv.quote_price}
+                      >
+                        Registrar resposta
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {sortedInvitations.length > 0 && (
+          <div className="border rounded-md">
+            <div className="flex justify-between items-center px-3 py-2 bg-muted">
+              <p className="text-sm font-semibold">Ranking</p>
+              <span className="text-xs text-muted-foreground">{rfqSide === 'buy' ? 'Menor preço vence' : 'Maior preço vence'}</span>
+            </div>
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr>
+                  <th className="text-left px-3 py-2 border-b">#</th>
+                  <th className="text-left px-3 py-2 border-b">Contraparte</th>
+                  <th className="text-left px-3 py-2 border-b">Preço</th>
+                  <th className="text-left px-3 py-2 border-b">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedInvitations.map((inv, idx) => (
+                  <tr key={inv.counterparty_id} className="border-b last:border-none">
+                    <td className="px-3 py-2 font-semibold">{idx + 1}</td>
+                    <td className="px-3 py-2">{inv.counterparty_name}</td>
+                    <td className="px-3 py-2">{inv.quote_price?.toFixed(2)}</td>
+                    <td className="px-3 py-2 capitalize text-xs">{inv.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
       {/* Company Selection */}
-      <Card className="p-6 bg-white border-slate-200 shadow-sm">
-        <Label className="mb-3 block font-semibold text-sky-900">Empresa</Label>
+      <Card className="p-4 bg-card border">
+        <Label className="mb-2 block font-semibold">Empresa</Label>
         <RadioGroup value={company} onValueChange={(value: any) => setCompany(value)}>
           <div className="flex gap-6">
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="Alcast Brasil" id="brasil" />
-              <Label htmlFor="brasil" className="cursor-pointer">Alcast Brasil</Label>
+              <Label htmlFor="brasil" className="cursor-pointer text-sm">Alcast Brasil</Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="Alcast Trading" id="trading" />
-              <Label htmlFor="trading" className="cursor-pointer">Alcast Trading</Label>
+              <Label htmlFor="trading" className="cursor-pointer text-sm">Alcast Trading</Label>
             </div>
           </div>
         </RadioGroup>
@@ -322,16 +673,16 @@ export const NovoRFQ = () => {
       </div>
 
       {/* Output Section */}
-      <Card className="p-6 space-y-4 bg-white border-slate-200 shadow-sm">
+      <Card className="p-5 space-y-4 bg-card border">
         <div className="flex justify-between items-center">
-          <h3 className="text-sky-900">Output - Trade Request Preview</h3>
+          <h3 className="text-base font-semibold text-foreground">Pré-visualização</h3>
           <Button
             onClick={handleGeneratePreview}
             disabled={isGenerating}
-            variant="default"
-            className="bg-sky-900 hover:bg-sky-800 disabled:opacity-60"
+            variant="outline"
+            size="sm"
           >
-            {isGenerating ? 'Gerando...' : 'Gerar Output'}
+            {isGenerating ? 'Gerando...' : 'Gerar output'}
           </Button>
         </div>
 
@@ -345,24 +696,24 @@ export const NovoRFQ = () => {
           value={finalOutput}
           readOnly
           placeholder="O texto gerado aparecerá aqui..."
-          className="min-h-[200px] font-mono text-sm bg-slate-50 border-slate-300"
+          className="min-h-[200px] font-mono text-sm bg-muted border"
         />
 
-        <div className="flex flex-wrap gap-3">
-          <Button onClick={addTrade} variant="outline" className="border-sky-900 text-sky-900 hover:bg-sky-50">
-            <Plus className="w-4 h-4 mr-2" />
-            Adicionar Trade
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={addTrade} variant="outline" size="sm">
+            <Plus className="w-4 h-4" />
+            Adicionar trade
           </Button>
-          <Button onClick={copyToClipboard} variant="outline" disabled={!finalOutput} className="border-slate-300 hover:bg-slate-50">
-            <Copy className="w-4 h-4 mr-2" />
-            Copiar Tudo
+          <Button onClick={copyToClipboard} variant="ghost" size="sm" disabled={!finalOutput}>
+            <Copy className="w-4 h-4" />
+            Copiar
           </Button>
-          <Button onClick={shareWhatsApp} variant="outline" disabled={!finalOutput} className="border-slate-300 hover:bg-slate-50">
-            <Send className="w-4 h-4 mr-2" />
+          <Button onClick={shareWhatsApp} variant="ghost" size="sm" disabled={!finalOutput}>
+            <Send className="w-4 h-4" />
             WhatsApp
           </Button>
-          <Button onClick={sendEmail} variant="outline" disabled={!finalOutput} className="border-slate-300 hover:bg-slate-50">
-            <Mail className="w-4 h-4 mr-2" />
+          <Button onClick={sendEmail} variant="ghost" size="sm" disabled={!finalOutput}>
+            <Mail className="w-4 h-4" />
             E-mail
           </Button>
         </div>
@@ -391,15 +742,15 @@ const TradeCard: React.FC<TradeCardProps> = ({
   canRemove,
 }) => {
   return (
-    <Card className="p-6 space-y-6 bg-white border-slate-200 shadow-md">
+    <Card className="p-5 space-y-5 bg-card border">
       {/* Trade Header */}
-      <div className="flex justify-between items-center pb-4 border-b-2 border-sky-100">
-        <h3 className="text-sky-900 font-semibold">Trade {tradeNumber}</h3>
+      <div className="flex justify-between items-center pb-3 border-b border-muted">
+        <h3 className="font-semibold text-foreground">Trade {tradeNumber}</h3>
         <div className="flex gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="border-sky-700 text-sky-700 hover:bg-sky-50">
-                Templates <ChevronDown className="w-4 h-4 ml-1" />
+              <Button variant="outline" size="sm">
+                Templates <ChevronDown className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
@@ -416,7 +767,7 @@ const TradeCard: React.FC<TradeCardProps> = ({
               variant="outline"
               size="sm"
               onClick={() => onRemove(trade.id)}
-              className="border-red-300 text-red-600 hover:bg-red-50"
+              className="text-destructive"
             >
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -425,9 +776,9 @@ const TradeCard: React.FC<TradeCardProps> = ({
       </div>
 
       {/* Trade Info */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-sky-50/50 p-4 rounded-lg border border-sky-100">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-lg border bg-muted/30">
         <div className="space-y-2">
-          <Label htmlFor={`qty-${trade.id}`} className="text-sky-900 font-medium">Quantidade (mt)</Label>
+          <Label htmlFor={`qty-${trade.id}`} className="font-medium text-sm">Quantidade (mt)</Label>
           <Input
             id={`qty-${trade.id}`}
             type="number"
@@ -440,7 +791,7 @@ const TradeCard: React.FC<TradeCardProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor={`type-${trade.id}`} className="text-sky-900 font-medium">Trade Type</Label>
+          <Label htmlFor={`type-${trade.id}`} className="font-medium text-sm">Trade Type</Label>
           <Select
             value={trade.tradeType}
             onValueChange={(value: 'Swap' | 'Forward') => onUpdate(trade.id, { tradeType: value })}
@@ -462,7 +813,7 @@ const TradeCard: React.FC<TradeCardProps> = ({
               checked={trade.syncPpt}
               onCheckedChange={(checked) => onUpdate(trade.id, { syncPpt: checked as boolean })}
             />
-            <Label htmlFor={`sync-${trade.id}`} className="cursor-pointer font-medium">Sync PPT</Label>
+            <Label htmlFor={`sync-${trade.id}`} className="cursor-pointer text-sm font-medium">Sync PPT</Label>
           </div>
         </div>
       </div>
@@ -500,12 +851,12 @@ const LegSection: React.FC<LegSectionProps> = ({ leg, legNumber, tradeId, onUpda
   const showOrderFields = leg.priceType === 'Fix' || leg.priceType === 'C2R';
 
   return (
-    <div className="space-y-4 p-5 border-2 border-slate-200 rounded-lg bg-gradient-to-br from-slate-50 to-white shadow-sm">
-      <h4 className="text-sky-900 font-semibold text-lg pb-2 border-b border-slate-200">Leg {legNumber}</h4>
+    <div className="space-y-4 p-4 border rounded-lg bg-card">
+      <h4 className="font-semibold text-base pb-2 border-b border-muted">Leg {legNumber}</h4>
 
       {/* Buy/Sell */}
       <div className="space-y-2">
-        <Label className="font-medium text-slate-700">Operação</Label>
+        <Label className="font-medium text-sm text-foreground">Operação</Label>
         <RadioGroup value={leg.side} onValueChange={(value: any) => onUpdate({ side: value })}>
           <div className="flex gap-4">
             <div className="flex items-center space-x-2">
@@ -522,7 +873,7 @@ const LegSection: React.FC<LegSectionProps> = ({ leg, legNumber, tradeId, onUpda
 
       {/* Price Type */}
       <div className="space-y-2">
-        <Label htmlFor={`priceType-${tradeId}-${legNumber}`} className="font-medium text-slate-700">Price Type</Label>
+        <Label htmlFor={`priceType-${tradeId}-${legNumber}`} className="font-medium text-sm text-foreground">Price Type</Label>
         <Select
           value={leg.priceType}
           onValueChange={(value: any) => onUpdate({ priceType: value })}
@@ -541,9 +892,9 @@ const LegSection: React.FC<LegSectionProps> = ({ leg, legNumber, tradeId, onUpda
 
       {/* AVG Fields */}
       {showAvgFields && (
-        <div className="grid grid-cols-2 gap-3 p-3 bg-blue-50 rounded-md border border-blue-100">
+        <div className="grid grid-cols-2 gap-3 p-3 bg-muted/40 rounded-md border">
           <div className="space-y-2">
-            <Label htmlFor={`month-${tradeId}-${legNumber}`} className="text-slate-700">Mês</Label>
+            <Label htmlFor={`month-${tradeId}-${legNumber}`} className="text-sm text-foreground">Mês</Label>
             <Select
               value={leg.month}
               onValueChange={(value) => onUpdate({ month: value })}
@@ -559,7 +910,7 @@ const LegSection: React.FC<LegSectionProps> = ({ leg, legNumber, tradeId, onUpda
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor={`year-${tradeId}-${legNumber}`} className="text-slate-700">Ano</Label>
+            <Label htmlFor={`year-${tradeId}-${legNumber}`} className="text-sm text-foreground">Ano</Label>
             <Select
               value={leg.year}
               onValueChange={(value) => onUpdate({ year: value })}
@@ -579,9 +930,9 @@ const LegSection: React.FC<LegSectionProps> = ({ leg, legNumber, tradeId, onUpda
 
       {/* AVG Period Fields */}
       {showAvgInterFields && (
-        <div className="space-y-3 p-3 bg-blue-50 rounded-md border border-blue-100">
+        <div className="space-y-3 p-3 bg-muted/40 rounded-md border">
           <div className="space-y-2">
-            <Label htmlFor={`startDate-${tradeId}-${legNumber}`} className="text-slate-700">Start Date</Label>
+            <Label htmlFor={`startDate-${tradeId}-${legNumber}`} className="text-sm text-foreground">Start Date</Label>
             <Input
               id={`startDate-${tradeId}-${legNumber}`}
               type="date"
@@ -591,7 +942,7 @@ const LegSection: React.FC<LegSectionProps> = ({ leg, legNumber, tradeId, onUpda
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor={`endDate-${tradeId}-${legNumber}`} className="text-slate-700">End Date</Label>
+            <Label htmlFor={`endDate-${tradeId}-${legNumber}`} className="text-sm text-foreground">End Date</Label>
             <Input
               id={`endDate-${tradeId}-${legNumber}`}
               type="date"
@@ -605,8 +956,8 @@ const LegSection: React.FC<LegSectionProps> = ({ leg, legNumber, tradeId, onUpda
 
       {/* Fixing Date */}
       {showFixingDate && (
-        <div className="space-y-2 p-3 bg-amber-50 rounded-md border border-amber-100">
-          <Label htmlFor={`fixDate-${tradeId}-${legNumber}`} className="text-slate-700">Fixing Date</Label>
+        <div className="space-y-2 p-3 bg-muted/40 rounded-md border">
+          <Label htmlFor={`fixDate-${tradeId}-${legNumber}`} className="text-sm text-foreground">Fixing Date</Label>
           <Input
             id={`fixDate-${tradeId}-${legNumber}`}
             type="date"
@@ -619,12 +970,12 @@ const LegSection: React.FC<LegSectionProps> = ({ leg, legNumber, tradeId, onUpda
 
       {/* Order Fields */}
       {showOrderFields && (
-        <div className="space-y-3 p-3 bg-emerald-50 rounded-md border border-emerald-100">
+        <div className="space-y-3 p-3 bg-muted/40 rounded-md border">
           <div className="space-y-2">
-            <Label htmlFor={`orderType-${tradeId}-${legNumber}`} className="text-slate-700 font-medium">Order Type</Label>
+            <Label htmlFor={`orderType-${tradeId}-${legNumber}`} className="font-medium text-sm text-foreground">Order Type</Label>
             <Select
               value={leg.orderType}
-              onValueChange={(value: any) => onUpdate({ orderType: value })}
+              onValueChange={(value: RfqOrderType) => onUpdate({ orderType: value })}
             >
               <SelectTrigger id={`orderType-${tradeId}-${legNumber}`} className="border-slate-300 bg-white">
                 <SelectValue placeholder="Selecione..." />
@@ -637,9 +988,9 @@ const LegSection: React.FC<LegSectionProps> = ({ leg, legNumber, tradeId, onUpda
             </Select>
           </div>
 
-          {leg.orderType !== 'At Market' && leg.orderType !== '' && (
+          {leg.orderType !== 'At Market' && (
             <div className="space-y-2">
-              <Label htmlFor={`orderValidity-${tradeId}-${legNumber}`} className="text-slate-700">Order Validity</Label>
+              <Label htmlFor={`orderValidity-${tradeId}-${legNumber}`} className="text-sm text-foreground">Order Validity</Label>
               <Select
                 value={leg.orderValidity}
                 onValueChange={(value: any) => onUpdate({ orderValidity: value })}
@@ -661,7 +1012,7 @@ const LegSection: React.FC<LegSectionProps> = ({ leg, legNumber, tradeId, onUpda
 
           {leg.orderType === 'Limit' && (
             <div className="space-y-2">
-              <Label htmlFor={`limitPrice-${tradeId}-${legNumber}`} className="text-slate-700">Limit Price</Label>
+              <Label htmlFor={`limitPrice-${tradeId}-${legNumber}`} className="text-sm text-foreground">Limit Price</Label>
               <Input
                 id={`limitPrice-${tradeId}-${legNumber}`}
                 type="number"

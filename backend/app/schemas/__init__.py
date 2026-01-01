@@ -13,7 +13,15 @@ from app.schemas.orders import (
     SalesOrderRead,
 )
 from app.schemas.counterparties import CounterpartyCreate, CounterpartyUpdate, CounterpartyRead
-from app.schemas.rfqs import RfqCreate, RfqUpdate, RfqRead, RfqQuoteCreate, RfqQuoteRead
+from app.schemas.rfqs import (
+    RfqCreate,
+    RfqUpdate,
+    RfqRead,
+    RfqQuoteCreate,
+    RfqQuoteRead,
+    RfqInvitationCreate,
+    RfqInvitationRead,
+)
 from app.schemas.kyc import KycDocumentRead, CreditCheckRead
 from app.schemas.hedges import HedgeCreate, HedgeUpdate, HedgeRead
 from app.schemas.exposures import ExposureRead, HedgeTaskRead
@@ -22,8 +30,18 @@ from app.schemas.mtm_snapshot import MTMSnapshotRead, MTMSnapshotCreate
 from app.schemas.market import MarketPriceCreate, MarketPriceRead, MtmRecordCreate, MtmRecordRead
 from app.schemas.mtm_compute import MtmComputeRequest, MtmComputeResponse
 from app.schemas.locations import WarehouseLocationCreate, WarehouseLocationUpdate, WarehouseLocationRead
+from app.schemas.deals import DealPnlResponse
+from app.schemas.contracts import ContractRead
+from app.schemas.whatsapp import (
+    WhatsAppMessageCreate,
+    WhatsAppMessageRead,
+    WhatsAppInboundPayload,
+    WhatsAppSendRfQRequest,
+    WhatsAppAssociateRequest,
+)
 from app.schemas.users import UserCreate, UserRead, RoleRead
 from app.schemas.auth import Token, TokenPayload
+from .rfq import RfqAwardRequest
 
 __all__ = [
     "SupplierCreate",
@@ -46,6 +64,8 @@ __all__ = [
     "RfqRead",
     "RfqQuoteCreate",
     "RfqQuoteRead",
+    "RfqInvitationCreate",
+    "RfqInvitationRead",
     "ExposureRead",
     "HedgeTaskRead",
     "HedgeCreateManual",
@@ -71,4 +91,11 @@ __all__ = [
     "RoleRead",
     "Token",
     "TokenPayload",
+    "DealPnlResponse",
+    "WhatsAppMessageCreate",
+    "WhatsAppMessageRead",
+    "WhatsAppInboundPayload",
+    "WhatsAppSendRfQRequest",
+    "WhatsAppAssociateRequest",
+    "ContractRead",
 ]

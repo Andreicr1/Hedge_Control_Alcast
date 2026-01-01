@@ -8,7 +8,6 @@ import { RoleName } from '../types/api';
 // Components
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
-import { DebugPanel } from './components/DebugPanel';
 
 // Pages
 import { Login } from './pages/Login';
@@ -23,6 +22,7 @@ import { FinanceiroContrapartes } from './pages/financeiro/Contrapartes';
 import { FinanceiroMTM } from './pages/financeiro/MTM';
 import { FinanceiroRelatorios } from './pages/financeiro/Relatorios';
 import { NetExposure } from './pages/financeiro/NetExposure';
+import { RFQDetalhe } from './pages/financeiro/RFQDetalhe';
 
 // Compras
 import { ComprasFornecedores } from './pages/compras/Fornecedores';
@@ -109,6 +109,12 @@ const AppRoutes = () => {
         }
       />
       <Route
+        path="/financeiro/rfqs/:id"
+        element={
+          renderProtected(<RFQDetalhe />, [RoleName.FINANCEIRO, RoleName.ADMIN])
+        }
+      />
+      <Route
         path="/financeiro/novorfq"
         element={
           renderProtected(<NovoRFQ />, [RoleName.FINANCEIRO, RoleName.ADMIN])
@@ -187,7 +193,6 @@ export default function App() {
       <DataProvider>
         <BrowserRouter>
           <AppRoutes />
-          <DebugPanel />
         </BrowserRouter>
       </DataProvider>
     </AuthProvider>

@@ -9,8 +9,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = "20231221_0002"
-down_revision = "20231221_0001"
+revision = "20231221_0002_seed_roles"
+down_revision = "20231221_0001_init_core_tables"
 branch_labels = None
 depends_on = None
 

@@ -9,8 +9,8 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "20250109_0001"
-down_revision = "20231221_0012"
+revision = "20250109_0001_align_models"
+down_revision = "20231221_0012_add_locations_and_costs"
 branch_labels = None
 depends_on = None
 

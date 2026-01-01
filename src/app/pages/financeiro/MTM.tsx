@@ -261,7 +261,7 @@ export const FinanceiroMTM = () => {
               };
             });
           }}
-          className="px-3 py-2 border rounded-md"
+          className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
         >
           <option value="">Selecionar hedge</option>
           {hedgeOptions.map((h) => (
@@ -289,7 +289,7 @@ export const FinanceiroMTM = () => {
               };
             });
           }}
-          className="px-3 py-2 border rounded-md"
+          className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
         >
           <option value="">Selecionar exposição</option>
           {exposureOptions.map((exp) => (
@@ -304,61 +304,61 @@ export const FinanceiroMTM = () => {
   };
 
   return (
-    <div className="p-6 space-y-8">
-      <section className="bg-card border rounded-xl p-6 space-y-6">
-        <div>
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">Painel Executivo</p>
-          <h1 className="text-2xl font-semibold">Risco Atual</h1>
-          <p className="text-sm text-muted-foreground">Conclusão imediata da posição consolidada.</p>
+    <div className="p-5 space-y-5">
+      <section className="bg-card border rounded-lg p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Risco Consolidado</p>
+            <h1 className="text-xl font-semibold">Visão geral</h1>
+          </div>
+          <span className="text-xs text-muted-foreground">{effectiveNetRows.length ? `${effectiveNetRows.length} buckets` : 'Sem consolidação'}</span>
         </div>
 
-        <div className="grid lg:grid-cols-[2fr_1fr_1fr] gap-4">
-          <div className="bg-muted/40 rounded-lg p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Exposição Líquida</p>
-            <div className="mt-2 text-4xl font-semibold">{netTotal.toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</div>
-            <p className="text-sm text-muted-foreground mt-2">
-              {effectiveNetRows.length ? `${effectiveNetRows.length} buckets consolidados` : 'Aguardando dados'}
+        <div className="grid lg:grid-cols-[2fr_1fr_1fr] gap-3">
+          <div className="rounded-lg p-3 border bg-muted/30">
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Exposição Líquida</p>
+            <div className="mt-1 text-3xl font-semibold">{netTotal.toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</div>
+            <p className="text-xs text-muted-foreground mt-1">{effectiveNetRows.length ? 'Atualizado' : 'Nenhuma exposição registrada'}</p>
+          </div>
+          <div className="border rounded-lg p-3">
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">MTM Atual</p>
+            <p className="mt-1 text-lg font-semibold">{latestSnapshot ? formatCurrency(latestSnapshot.mtm_value) : '-'}</p>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {latestSnapshot ? `${latestSnapshot.product || 'Commodity'} • ${latestSnapshot.period || '-'}` : 'Sem cálculo recente'}
             </p>
           </div>
-          <div className="border rounded-lg p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">MTM Atual</p>
-            <p className="mt-2 text-2xl font-semibold">{latestSnapshot ? formatCurrency(latestSnapshot.mtm_value) : '-'}</p>
-            <p className="text-xs text-muted-foreground mt-2">
-              {latestSnapshot ? `${latestSnapshot.product || 'Commodity'} • ${latestSnapshot.period || '-'}` : 'Aguardando cálculo'}
-            </p>
-          </div>
-          <div className="border rounded-lg p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Cobertura de hedge</p>
-            <p className="mt-2 text-2xl font-semibold">{hedgedTotal.toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</p>
-            <p className="text-xs text-muted-foreground mt-2">Cobertura registrada</p>
+          <div className="border rounded-lg p-3">
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Cobertura</p>
+            <p className="mt-1 text-lg font-semibold">{hedgedTotal.toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Hedges registrados</p>
           </div>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-4 text-sm">
-          <div className="border rounded-lg p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Exposição bruta</p>
-            <p className="mt-2 text-lg font-semibold">{(grossActive + grossPassive).toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</p>
-            <p className="text-xs text-muted-foreground mt-2">Ativa {grossActive.toFixed(0)} • Passiva {grossPassive.toFixed(0)}</p>
+        <div className="grid md:grid-cols-3 gap-3 text-sm">
+          <div className="border rounded-lg p-3">
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Exposição bruta</p>
+            <p className="mt-1 text-base font-semibold">{(grossActive + grossPassive).toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Ativa {grossActive.toFixed(0)} • Passiva {grossPassive.toFixed(0)}</p>
           </div>
-          <div className="border rounded-lg p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Exposição ativa</p>
-            <p className="mt-2 text-lg font-semibold">{grossActive.toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</p>
-            <p className="text-xs text-muted-foreground mt-2">Vendas e recebíveis</p>
+          <div className="border rounded-lg p-3">
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Exposição ativa</p>
+            <p className="mt-1 text-base font-semibold">{grossActive.toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Vendas e recebíveis</p>
           </div>
-          <div className="border rounded-lg p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Exposição passiva</p>
-            <p className="mt-2 text-lg font-semibold">{grossPassive.toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</p>
-            <p className="text-xs text-muted-foreground mt-2">Compras e pagamentos</p>
+          <div className="border rounded-lg p-3">
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Exposição passiva</p>
+            <p className="mt-1 text-base font-semibold">{grossPassive.toLocaleString('en-US', { maximumFractionDigits: 2 })} MT</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Compras e pagamentos</p>
           </div>
         </div>
       </section>
 
-      {error && <div className="bg-amber-50 text-amber-700 border border-amber-200 px-3 py-2 rounded">Não foi possível carregar agora.</div>}
+      {error && <div className="bg-amber-50 text-amber-700 border border-amber-200 px-3 py-2 rounded">Não foi possível carregar no momento.</div>}
 
-      <div className="bg-card border rounded-lg p-4 space-y-4">
+      <div className="bg-card border rounded-lg p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Fonte de preço</h3>
-          <span className="text-xs text-muted-foreground">Atualize o preço-base</span>
+          <h3 className="font-semibold">Preços de mercado</h3>
+          <span className="text-xs text-muted-foreground">Atualização pontual</span>
         </div>
         <form className="grid md:grid-cols-6 gap-3" onSubmit={handlePriceSubmit}>
           <input
@@ -366,20 +366,20 @@ export const FinanceiroMTM = () => {
             placeholder="Fonte (ex: manual, LME)"
             value={priceForm.source}
             onChange={(e) => setPriceForm((prev) => ({ ...prev, source: e.target.value }))}
-            className="px-3 py-2 border rounded-md"
+            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
           />
           <input
             required
             placeholder="Símbolo (ex: LME-ALU)"
             value={priceForm.symbol}
             onChange={(e) => setPriceForm((prev) => ({ ...prev, symbol: e.target.value }))}
-            className="px-3 py-2 border rounded-md"
+            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
           />
           <input
             placeholder="Período/contrato (YYYY-MM)"
             value={priceForm.contract_month}
             onChange={(e) => setPriceForm((prev) => ({ ...prev, contract_month: e.target.value }))}
-            className="px-3 py-2 border rounded-md"
+            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
           />
           <input
             required
@@ -389,14 +389,14 @@ export const FinanceiroMTM = () => {
             placeholder="Preço"
             value={priceForm.price}
             onChange={(e) => setPriceForm((prev) => ({ ...prev, price: e.target.value }))}
-            className="px-3 py-2 border rounded-md"
+            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
           />
           <input
             type="datetime-local"
             required
             value={priceForm.as_of}
             onChange={(e) => setPriceForm((prev) => ({ ...prev, as_of: e.target.value }))}
-            className="px-3 py-2 border rounded-md"
+            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
           />
           <div className="flex items-center gap-2 px-3 py-2 border rounded-md">
             <input
@@ -411,12 +411,12 @@ export const FinanceiroMTM = () => {
           <button
             type="submit"
             disabled={savingPrice}
-            className="md:col-span-6 px-3 py-2 border rounded-md text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-50"
+            className="md:col-span-6 h-9 border rounded-md text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
           >
             {savingPrice ? 'Atualizando...' : 'Salvar preço'}
           </button>
         </form>
-        {marketPrices.length > 0 && (
+        {marketPrices.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm border rounded-md">
               <thead className="bg-muted">
@@ -441,12 +441,14 @@ export const FinanceiroMTM = () => {
               </tbody>
             </table>
           </div>
+        ) : (
+          <div className="text-sm text-muted-foreground border rounded-md p-3 bg-muted/40">Nenhum preço registrado.</div>
         )}
       </div>
 
-      <div className="bg-card border rounded-lg p-4 space-y-4">
+      <div className="bg-card border rounded-lg p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Calcular MTM</h3>
+          <h3 className="font-semibold">MTM</h3>
           <span className="text-xs text-muted-foreground">Registro imutável</span>
         </div>
         <form className="grid md:grid-cols-3 gap-3" onSubmit={handleSnapshotSubmit}>
@@ -460,7 +462,7 @@ export const FinanceiroMTM = () => {
                 object_id: newType === MarketObjectType.NET ? '' : prev.object_id,
               }));
             }}
-            className="px-3 py-2 border rounded-md"
+            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
           >
             <option value={MarketObjectType.HEDGE}>Hedge</option>
             <option value={MarketObjectType.EXPOSURE}>Exposure</option>
@@ -473,13 +475,13 @@ export const FinanceiroMTM = () => {
             placeholder="Commodity"
             value={snapshotForm.product}
             onChange={(e) => setSnapshotForm((prev) => ({ ...prev, product: e.target.value }))}
-            className="px-3 py-2 border rounded-md"
+            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
           />
           <input
             placeholder="Período (YYYY-MM)"
             value={snapshotForm.period}
             onChange={(e) => setSnapshotForm((prev) => ({ ...prev, period: e.target.value }))}
-            className="px-3 py-2 border rounded-md"
+            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
           />
           <input
             required
@@ -489,20 +491,20 @@ export const FinanceiroMTM = () => {
             placeholder="Preço usado"
             value={snapshotForm.price}
             onChange={(e) => setSnapshotForm((prev) => ({ ...prev, price: e.target.value }))}
-            className="px-3 py-2 border rounded-md"
+            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
           />
           <input
             type="date"
             value={snapshotForm.as_of_date}
             onChange={(e) => setSnapshotForm((prev) => ({ ...prev, as_of_date: e.target.value }))}
-            className="px-3 py-2 border rounded-md"
+            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
           />
           <button
             type="submit"
             disabled={savingSnapshot}
-            className="md:col-span-3 px-3 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50"
+            className="md:col-span-3 h-9 border rounded-md text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
           >
-            {savingSnapshot ? 'Calculando...' : 'Calcular e registrar MTM'}
+            {savingSnapshot ? 'Registrando...' : 'Registrar MTM'}
           </button>
         </form>
       </div>
@@ -513,7 +515,7 @@ export const FinanceiroMTM = () => {
           <span className="text-xs text-muted-foreground">Evidência operacional</span>
         </div>
         {effectiveNetRows.length === 0 ? (
-          <div className="text-muted-foreground text-sm">Sem dados de exposição.</div>
+          <div className="text-muted-foreground text-sm border rounded-md p-3 bg-muted/40">Nenhuma exposição registrada.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm border rounded-md">
@@ -553,7 +555,7 @@ export const FinanceiroMTM = () => {
           <select
             value={filters.object_type}
             onChange={(e) => setFilters((prev) => ({ ...prev, object_type: e.target.value }))}
-            className="px-3 py-2 border rounded-md"
+            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
           >
             <option value="">Tipo</option>
             <option value={MarketObjectType.HEDGE}>Hedge</option>
@@ -564,22 +566,22 @@ export const FinanceiroMTM = () => {
             placeholder="ID da entidade"
             value={filters.object_id}
             onChange={(e) => setFilters((prev) => ({ ...prev, object_id: e.target.value }))}
-            className="px-3 py-2 border rounded-md"
+            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
           />
           <input
             placeholder="Commodity"
             value={filters.product}
             onChange={(e) => setFilters((prev) => ({ ...prev, product: e.target.value }))}
-            className="px-3 py-2 border rounded-md"
+            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
           />
           <input
             placeholder="Período (YYYY-MM)"
             value={filters.period}
             onChange={(e) => setFilters((prev) => ({ ...prev, period: e.target.value }))}
-            className="px-3 py-2 border rounded-md"
+            className="px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
           />
           <button
-            className="px-4 py-2 border rounded-md text-muted-foreground hover:text-foreground hover:bg-accent"
+            className="px-4 h-10 border rounded-md text-sm text-foreground hover:bg-muted disabled:opacity-50"
             onClick={loadSnapshots}
             disabled={loadingSnapshots}
           >
@@ -633,8 +635,8 @@ export const FinanceiroMTM = () => {
       <div className="bg-card border rounded-lg p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold">Hedges</h3>
-          <button className="px-3 py-2 border rounded-md text-muted-foreground hover:text-foreground hover:bg-accent" onClick={fetchHedges} disabled={loadingHedges}>
-            {loadingHedges ? 'Atualizando...' : 'Recarregar'}
+          <button className="px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-md border" onClick={fetchHedges} disabled={loadingHedges}>
+            {loadingHedges ? 'Atualizando...' : 'Atualizar lista'}
           </button>
         </div>
         {loadingHedges ? (

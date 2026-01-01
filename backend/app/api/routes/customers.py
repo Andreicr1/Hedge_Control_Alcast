@@ -31,13 +31,7 @@ def create_customer(
 ):
     if db.query(models.Customer).filter(models.Customer.name == payload.name).first():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Customer already exists")
-    cust = models.Customer(
-        name=payload.name,
-        code=payload.code,
-        contact_email=payload.contact_email,
-        contact_phone=payload.contact_phone,
-        active=payload.active,
-    )
+    cust = models.Customer(**payload.dict(exclude_unset=True))
     db.add(cust)
     db.commit()
     db.refresh(cust)

@@ -10,8 +10,8 @@ from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
-revision = "20231221_0005"
-down_revision = "20231221_0004"
+revision = "20231221_0005_add_rfq_send_attempts"
+down_revision = "20231221_0004_add_rfq_timestamps"
 branch_labels = None
 depends_on = None
 
