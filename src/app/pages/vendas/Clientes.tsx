@@ -1,11 +1,46 @@
+import {
+  CheckCircle2,
+  FileUp,
+  Files,
+  Loader2,
+  Plus,
+  ShieldCheck,
+} from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, X, FileUp, ShieldCheck, Loader2, Files, CheckCircle2 } from 'lucide-react';
-import * as Dialog from '@radix-ui/react-dialog';
+import { toast } from 'sonner';
+
 import { useData } from '../../../contexts/DataContextAPI';
 import { customersService } from '../../../services/customersService';
-import { Customer, KycDocument } from '../../../types/api';
+import { KycDocument } from '../../../types/api';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Checkbox } from '../../components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '../../components/ui/dialog';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Page, PageHeader, SectionCard } from '../../components/ui/page';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
+import { Textarea } from '../../components/ui/textarea';
 
-const entityTypes = ['company', 'financial_institution', 'trading_house', 'individual'];
+const entityTypes = [
+  'company',
+  'financial_institution',
+  'trading_house',
+  'individual',
+];
 const entityTypeLabels: Record<string, string> = {
   company: 'Empresa',
   financial_institution: 'Instituição financeira',
@@ -98,7 +133,11 @@ export const VendasClientes = () => {
         country_residence: formData.country_residence || undefined,
         tax_id: formData.tax_id_value || undefined,
         tax_id_type: formData.tax_id_type,
-        tax_id_country: formData.tax_id_country || formData.country_incorporation || formData.country_operation || undefined,
+        tax_id_country:
+          formData.tax_id_country ||
+          formData.country_incorporation ||
+          formData.country_operation ||
+          undefined,
         state_registration: formData.state_registration || undefined,
         contact_email: formData.contact_email || undefined,
         contact_phone: formData.contact_phone || undefined,
@@ -130,7 +169,7 @@ export const VendasClientes = () => {
     try {
       await customersService.uploadDocument(customerId, file);
       const list = await customersService.listDocuments(customerId);
-      setDocsMap((prev) => ({ ...prev, [customerId]: list }));
+      setDocsMap(prev => ({ ...prev, [customerId]: list }));
     } finally {
       setUploading(null);
     }
@@ -138,7 +177,7 @@ export const VendasClientes = () => {
 
   const handleFetchDocs = async (customerId: number) => {
     const list = await customersService.listDocuments(customerId);
-    setDocsMap((prev) => ({ ...prev, [customerId]: list }));
+    setDocsMap(prev => ({ ...prev, [customerId]: list }));
   };
 
   const handleCreditCheck = async (customerId: number) => {
@@ -154,342 +193,422 @@ export const VendasClientes = () => {
   const kycBadge = (status?: string) => {
     switch (status) {
       case 'approved':
-        return 'bg-green-100 text-green-800';
+        return 'bg-success/10 text-success border-success/20';
       case 'manual_review':
-        return 'bg-amber-100 text-amber-800';
+        return 'bg-warning/10 text-warning border-warning/20';
       case 'rejected':
-        return 'bg-red-100 text-red-800';
+        return 'bg-destructive/10 text-destructive border-destructive/20';
       default:
-        return 'bg-slate-100 text-slate-700';
+        return 'bg-muted text-muted-foreground border-border';
     }
   };
 
   const sortedCustomers = useMemo(
-    () => [...customers].sort((a, b) => (a.name || '').localeCompare(b.name || '')),
+    () =>
+      [...customers].sort((a, b) => (a.name || '').localeCompare(b.name || '')),
     [customers]
   );
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-xl font-semibold">Clientes</h2>
-          <p className="text-muted-foreground">Cadastro global com crédito e KYC</p>
-        </div>
+    <Page>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <PageHeader
+          title="Clientes"
+          description="Cadastro global com crédito e KYC"
+          actions={
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="w-4 h-4" />
+                Novo Cliente
+              </Button>
+            </DialogTrigger>
+          }
+        />
 
-        <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
-          <Dialog.Trigger asChild>
-            <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90">
-              <Plus className="w-4 h-4" />
-              Novo Cliente
-            </button>
-          </Dialog.Trigger>
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 bg-black/50 z-40" />
-            <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card border rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto z-50">
-              <div className="flex justify-between items-center mb-4">
-                <Dialog.Title className="text-lg font-semibold">Cadastrar cliente</Dialog.Title>
-                <Dialog.Close asChild>
-                  <button className="p-2 hover:bg-accent rounded-md">
-                    <X className="w-5 h-5" />
-                  </button>
-                </Dialog.Close>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Cadastrar cliente</DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <Label>Nome fantasia *</Label>
+                <Input
+                  required
+                  value={formData.name}
+                  onChange={e =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  placeholder="Ex: Global Buyer"
+                />
               </div>
+              <div className="space-y-1">
+                <Label>Nome legal</Label>
+                <Input
+                  value={formData.legal_name}
+                  onChange={e =>
+                    setFormData({ ...formData, legal_name: e.target.value })
+                  }
+                  placeholder="Razão social"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="entity-type">Tipo de entidade</Label>
+                <Select
+                  value={formData.entity_type}
+                  onValueChange={value =>
+                    setFormData({ ...formData, entity_type: value })
+                  }
+                >
+                  <SelectTrigger id="entity-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {entityTypes.map(type => (
+                      <SelectItem key={type} value={type}>
+                        {entityTypeLabels[type] || type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Nome fantasia *</label>
-                    <input
-                      required
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="Ex: Global Buyer"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Nome legal</label>
-                    <input
-                      value={formData.legal_name}
-                      onChange={(e) => setFormData({ ...formData, legal_name: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="Razão social"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Tipo de entidade</label>
-                    <select
-                      value={formData.entity_type}
-                      onChange={(e) => setFormData({ ...formData, entity_type: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                    >
-                      {entityTypes.map((type) => (
-                        <option key={type} value={type}>{entityTypeLabels[type] || type}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <Label>País de incorporação *</Label>
+                <Input
+                  required
+                  value={formData.country_incorporation}
+                  onChange={e =>
+                    setFormData({
+                      ...formData,
+                      country_incorporation: e.target.value,
+                    })
+                  }
+                  placeholder="Informe o país"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>País de operação *</Label>
+                <Input
+                  required
+                  value={formData.country_operation}
+                  onChange={e =>
+                    setFormData({
+                      ...formData,
+                      country_operation: e.target.value,
+                      country: e.target.value,
+                    })
+                  }
+                  placeholder="Onde opera"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>País de residência</Label>
+                <Input
+                  value={formData.country_residence}
+                  onChange={e =>
+                    setFormData({
+                      ...formData,
+                      country_residence: e.target.value,
+                    })
+                  }
+                  placeholder="Residência (opcional)"
+                />
+              </div>
+            </div>
 
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">País de incorporação *</label>
-                    <input
-                      required
-                      value={formData.country_incorporation}
-                      onChange={(e) => setFormData({ ...formData, country_incorporation: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="Informe o país"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">País de operação *</label>
-                    <input
-                      required
-                      value={formData.country_operation}
-                      onChange={(e) => setFormData({ ...formData, country_operation: e.target.value, country: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="Onde opera"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">País de residência</label>
-                    <input
-                      value={formData.country_residence}
-                      onChange={(e) => setFormData({ ...formData, country_residence: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="Residência (opcional)"
-                    />
-                  </div>
-                </div>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <Label>Moeda base</Label>
+                <Input
+                  value={formData.base_currency}
+                  onChange={e =>
+                    setFormData({ ...formData, base_currency: e.target.value })
+                  }
+                  placeholder="USD"
+                />
+              </div>
+            </div>
 
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Moeda base</label>
-                    <input
-                      value={formData.base_currency}
-                      onChange={(e) => setFormData({ ...formData, base_currency: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="USD"
-                    />
-                  </div>
-                </div>
+            <div className="grid md:grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <Label>Tipo de identificador fiscal</Label>
+                <Input
+                  value={formData.tax_id_type}
+                  onChange={e =>
+                    setFormData({ ...formData, tax_id_type: e.target.value })
+                  }
+                  placeholder="Ex: VAT, EIN, CNPJ"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Número</Label>
+                <Input
+                  value={formData.tax_id_value}
+                  onChange={e =>
+                    setFormData({ ...formData, tax_id_value: e.target.value })
+                  }
+                  placeholder="Número fiscal"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>País emissor</Label>
+                <Input
+                  value={formData.tax_id_country}
+                  onChange={e =>
+                    setFormData({ ...formData, tax_id_country: e.target.value })
+                  }
+                  placeholder="Ex: BR, US"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Termos de pagamento</Label>
+                <Input
+                  value={formData.payment_terms}
+                  onChange={e =>
+                    setFormData({ ...formData, payment_terms: e.target.value })
+                  }
+                  placeholder="ex: 30d, 15d"
+                />
+              </div>
+            </div>
 
-                <div className="grid md:grid-cols-4 gap-4">
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Tipo de identificador fiscal</label>
-                    <input
-                      value={formData.tax_id_type}
-                      onChange={(e) => setFormData({ ...formData, tax_id_type: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="Ex: VAT, EIN, CNPJ"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Número</label>
-                    <input
-                      value={formData.tax_id_value}
-                      onChange={(e) => setFormData({ ...formData, tax_id_value: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="Número fiscal"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">País emissor</label>
-                    <input
-                      value={formData.tax_id_country}
-                      onChange={(e) => setFormData({ ...formData, tax_id_country: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="Ex: BR, US"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Termos de pagamento</label>
-                    <input
-                      value={formData.payment_terms}
-                      onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="ex: 30d, 15d"
-                    />
-                  </div>
-                </div>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="md:col-span-2 space-y-1">
+                <Label>Endereço completo</Label>
+                <Input
+                  value={formData.address_line}
+                  onChange={e =>
+                    setFormData({ ...formData, address_line: e.target.value })
+                  }
+                  placeholder="Rua, número, complemento, cidade"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Código postal</Label>
+                <Input
+                  value={formData.postal_code}
+                  onChange={e =>
+                    setFormData({ ...formData, postal_code: e.target.value })
+                  }
+                  placeholder="ZIP/Postal"
+                />
+              </div>
+            </div>
 
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Endereço completo</label>
-                    <input
-                      value={formData.address_line}
-                      onChange={(e) => setFormData({ ...formData, address_line: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="Rua, número, complemento, cidade"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Código postal</label>
-                    <input
-                      value={formData.postal_code}
-                      onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="ZIP/Postal"
-                    />
-                  </div>
-                </div>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <Label>Limite de crédito</Label>
+                <Input
+                  type="number"
+                  value={formData.credit_limit || ''}
+                  onChange={e =>
+                    setFormData({
+                      ...formData,
+                      credit_limit: Number(e.target.value),
+                    })
+                  }
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Classificação de risco</Label>
+                <Input
+                  value={formData.risk_rating}
+                  onChange={e =>
+                    setFormData({ ...formData, risk_rating: e.target.value })
+                  }
+                  placeholder="ex: BBB"
+                />
+              </div>
+              <div className="flex items-end gap-2 pb-1">
+                <Checkbox
+                  id="sanctions-customer"
+                  checked={formData.sanctions_flag}
+                  onCheckedChange={checked =>
+                    setFormData({ ...formData, sanctions_flag: !!checked })
+                  }
+                />
+                <Label htmlFor="sanctions-customer" className="cursor-pointer">
+                  Flag de sanções
+                </Label>
+              </div>
+            </div>
 
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Limite de crédito</label>
-                    <input
-                      type="number"
-                      value={formData.credit_limit || ''}
-                      onChange={(e) => setFormData({ ...formData, credit_limit: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="0"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Classificação de risco</label>
-                    <input
-                      value={formData.risk_rating}
-                      onChange={(e) => setFormData({ ...formData, risk_rating: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="ex: BBB"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2 pt-6">
-                    <input
-                      id="sanctions-customer"
-                      type="checkbox"
-                      checked={formData.sanctions_flag}
-                      onChange={(e) => setFormData({ ...formData, sanctions_flag: e.target.checked })}
-                    />
-                    <label htmlFor="sanctions-customer" className="text-sm">Flag de sanções</label>
-                  </div>
-                </div>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <Label>E-mail de contato</Label>
+                <Input
+                  value={formData.contact_email}
+                  onChange={e =>
+                    setFormData({ ...formData, contact_email: e.target.value })
+                  }
+                  placeholder="financeiro@cliente.com"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Telefone</Label>
+                <Input
+                  value={formData.contact_phone}
+                  onChange={e =>
+                    setFormData({ ...formData, contact_phone: e.target.value })
+                  }
+                  placeholder="+1 202 555 0100"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Registro/ID estadual</Label>
+                <Input
+                  value={formData.state_registration}
+                  onChange={e =>
+                    setFormData({
+                      ...formData,
+                      state_registration: e.target.value,
+                    })
+                  }
+                  placeholder="ID"
+                />
+              </div>
+            </div>
 
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">E-mail de contato</label>
-                    <input
-                      value={formData.contact_email}
-                      onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="financeiro@cliente.com"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Telefone</label>
-                    <input
-                      value={formData.contact_phone}
-                      onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="+1 202 555 0100"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Registro/ID estadual</label>
-                    <input
-                      value={formData.state_registration}
-                      onChange={(e) => setFormData({ ...formData, state_registration: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="ID"
-                    />
-                  </div>
-                </div>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="kyc-status">Status KYC</Label>
+                <Select
+                  value={formData.kyc_status}
+                  onValueChange={value =>
+                    setFormData({ ...formData, kyc_status: value })
+                  }
+                >
+                  <SelectTrigger id="kyc-status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pendente</SelectItem>
+                    <SelectItem value="approved">Aprovado</SelectItem>
+                    <SelectItem value="manual_review">
+                      Revisão manual
+                    </SelectItem>
+                    <SelectItem value="rejected">Reprovado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="md:col-span-2 space-y-1">
+                <Label>Observações internas</Label>
+                <Textarea
+                  value={formData.kyc_notes}
+                  onChange={e =>
+                    setFormData({ ...formData, kyc_notes: e.target.value })
+                  }
+                  className="min-h-[70px]"
+                  placeholder="Compliance / onboarding"
+                />
+              </div>
+            </div>
 
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Status KYC</label>
-                    <select
-                      value={formData.kyc_status}
-                      onChange={(e) => setFormData({ ...formData, kyc_status: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                    >
-                      <option value="pending">Pendente</option>
-                      <option value="approved">Aprovado</option>
-                      <option value="manual_review">Revisão manual</option>
-                      <option value="rejected">Reprovado</option>
-                    </select>
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Observações internas</label>
-                    <textarea
-                      value={formData.kyc_notes}
-                      onChange={(e) => setFormData({ ...formData, kyc_notes: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-md bg-background min-h-[70px]"
-                      placeholder="Compliance / onboarding"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-60"
-                  >
-                    {saving ? 'Salvando...' : 'Salvar cliente'}
-                  </button>
-                </div>
-              </form>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
-      </div>
+            <DialogFooter>
+              <Button type="submit" disabled={saving}>
+                {saving ? 'Salvando...' : 'Salvar cliente'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {loadingCustomers ? (
         <div className="text-muted-foreground">Carregando clientes...</div>
       ) : sortedCustomers.length === 0 ? (
         <div className="text-muted-foreground">Nenhum cliente cadastrado.</div>
       ) : (
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {sortedCustomers.map((cust) => (
-            <div key={cust.id} className="bg-card border rounded-lg p-4 space-y-3">
+        <SectionCard className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {sortedCustomers.map(cust => (
+            <div
+              key={cust.id}
+              className="bg-card border rounded-lg p-4 space-y-3"
+            >
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="font-semibold text-lg">{cust.name}</h3>
-                  <p className="text-sm text-muted-foreground">{cust.legal_name || 'Legal name não informado'}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {cust.legal_name || 'Legal name não informado'}
+                  </p>
                 </div>
-                <span className={`px-2 py-1 text-xs rounded-full ${kycBadge(cust.kyc_status)}`}>
+                <Badge
+                  variant="secondary"
+                  className={`text-xs capitalize ${kycBadge(cust.kyc_status)}`}
+                >
                   {cust.kyc_status || 'pending'}
-                </span>
+                </Badge>
               </div>
 
               <div className="text-sm space-y-1 text-foreground">
-                <div><strong>Identificador:</strong> {cust.tax_id_type ? `${cust.tax_id_type}:` : ''} {cust.tax_id || '—'}</div>
-                <div><strong>País:</strong> {cust.country_operation || cust.country || cust.country_incorporation || '—'}</div>
-                <div><strong>Contato:</strong> {cust.contact_email || '—'} {cust.contact_phone ? `• ${cust.contact_phone}` : ''}</div>
-                <div><strong>Endereço:</strong> {cust.address_line || '—'} {cust.postal_code ? `• ${cust.postal_code}` : ''}</div>
-                <div><strong>Limite crédito:</strong> {cust.base_currency || 'Moeda'} {cust.credit_limit?.toLocaleString() || '—'}</div>
-                <div><strong>Classificação:</strong> {cust.risk_rating || '—'}</div>
+                <div>
+                  <strong>Identificador:</strong>{' '}
+                  {cust.tax_id_type ? `${cust.tax_id_type}:` : ''}{' '}
+                  {cust.tax_id || '—'}
+                </div>
+                <div>
+                  <strong>País:</strong>{' '}
+                  {cust.country_operation ||
+                    cust.country ||
+                    cust.country_incorporation ||
+                    '—'}
+                </div>
+                <div>
+                  <strong>Contato:</strong> {cust.contact_email || '—'}{' '}
+                  {cust.contact_phone ? `• ${cust.contact_phone}` : ''}
+                </div>
+                <div>
+                  <strong>Endereço:</strong> {cust.address_line || '—'}{' '}
+                  {cust.postal_code ? `• ${cust.postal_code}` : ''}
+                </div>
+                <div>
+                  <strong>Limite crédito:</strong>{' '}
+                  {cust.base_currency || 'Moeda'}{' '}
+                  {cust.credit_limit?.toLocaleString() || '—'}
+                </div>
+                <div>
+                  <strong>Classificação:</strong> {cust.risk_rating || '—'}
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <button
+                <Button
                   onClick={() => handleCreditCheck(cust.id)}
                   disabled={checkingId === cust.id}
-                  className="flex items-center gap-2 px-3 py-2 rounded-md bg-slate-900 text-white text-sm disabled:opacity-60"
+                  size="sm"
                 >
-                  {checkingId === cust.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                  {checkingId === cust.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="w-4 h-4" />
+                  )}
                   Consultar crédito
-                </button>
+                </Button>
 
-                <label className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm cursor-pointer">
-                  <FileUp className="w-4 h-4" />
-                  Upload Doc
-                  <input
-                    type="file"
-                    className="hidden"
-                    onChange={(e) => handleUpload(cust.id, e.target.files?.[0])}
-                  />
-                </label>
+                <Button asChild variant="outline" size="sm">
+                  <label className="cursor-pointer">
+                    <FileUp className="w-4 h-4" />
+                    Upload Doc
+                    <input
+                      type="file"
+                      className="hidden"
+                      onChange={e => handleUpload(cust.id, e.target.files?.[0])}
+                    />
+                  </label>
+                </Button>
 
-                <button
+                <Button
                   onClick={() => handleFetchDocs(cust.id)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm"
+                  variant="outline"
+                  size="sm"
                 >
                   <Files className="w-4 h-4" />
                   Ver docs ({docsMap[cust.id]?.length || 0})
-                </button>
+                </Button>
               </div>
 
               {uploading === cust.id && (
@@ -500,11 +619,13 @@ export const VendasClientes = () => {
 
               {docsMap[cust.id]?.length ? (
                 <div className="border rounded-md p-3 bg-muted/30">
-                  <div className="text-xs text-muted-foreground mb-2">Documentos</div>
+                  <div className="text-xs text-muted-foreground mb-2">
+                    Documentos
+                  </div>
                   <ul className="space-y-1 text-sm">
-                    {docsMap[cust.id].map((doc) => (
+                    {docsMap[cust.id].map(doc => (
                       <li key={doc.id} className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        <CheckCircle2 className="w-4 h-4 text-success" />
                         {doc.filename}
                       </li>
                     ))}
@@ -513,8 +634,8 @@ export const VendasClientes = () => {
               ) : null}
             </div>
           ))}
-        </div>
+        </SectionCard>
       )}
-    </div>
+    </Page>
   );
 };

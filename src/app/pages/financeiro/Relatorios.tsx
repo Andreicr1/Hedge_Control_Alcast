@@ -1,13 +1,29 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useData } from '../../../contexts/DataContextAPI';
-import { mtmSnapshotsService } from '../../../services/mtmSnapshotsService';
-import { dealsService } from '../../../services/dealsService';
-import { DealPnl, MTMSnapshot, RfqSide } from '../../../types/api';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { Label } from '../../components/ui/label';
-import { Download } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from "react";
+import { useData } from "../../../contexts/DataContextAPI";
+import { mtmSnapshotsService } from "../../../services/mtmSnapshotsService";
+import { dealsService } from "../../../services/dealsService";
+import { DealPnl, MTMSnapshot, RfqSide } from "../../../types/api";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
+import { Label } from "../../components/ui/label";
+import { Page, PageHeader, SectionCard } from "../../components/ui/page";
+import { Badge } from "../../components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../../components/ui/table";
+import { Download } from "lucide-react";
 
 type NetRow = {
   product: string;
@@ -210,13 +226,13 @@ export const FinanceiroRelatorios = () => {
     );
 
   return (
-    <div className="p-5 space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold">Relatórios</h2>
-        <p className="text-sm text-muted-foreground">Leitura executiva dos resultados por deal</p>
-      </div>
+    <Page>
+      <PageHeader
+        title="Relatórios"
+        description="Leitura executiva dos resultados por deal"
+      />
 
-      <div className="bg-card border rounded-lg p-4 space-y-3">
+      <SectionCard className="space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Deal Engine</p>
@@ -312,9 +328,9 @@ export const FinanceiroRelatorios = () => {
         ) : (
           <p className="text-sm text-muted-foreground">Consulte um deal_id para ver o consolidado físico + hedge.</p>
         )}
-      </div>
+      </SectionCard>
 
-      <div className="bg-card border rounded-lg p-4 space-y-3">
+      <SectionCard className="space-y-3">
         <div className="flex flex-wrap gap-3 items-end">
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Commodity</Label>
@@ -336,7 +352,12 @@ export const FinanceiroRelatorios = () => {
           </div>
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Contraparte</Label>
-            <Select value={filters.counterparty} onValueChange={(value) => setFilters((prev) => ({ ...prev, counterparty: value }))}>
+            <Select
+              value={filters.counterparty}
+              onValueChange={(value: string) =>
+                setFilters((prev) => ({ ...prev, counterparty: value }))
+              }
+            >
               <SelectTrigger className="h-9 w-48">
                 <SelectValue placeholder="Todas" />
               </SelectTrigger>
@@ -352,7 +373,12 @@ export const FinanceiroRelatorios = () => {
           </div>
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Status do deal</Label>
-            <Select value={filters.status} onValueChange={(value) => setFilters((prev) => ({ ...prev, status: value }))}>
+            <Select
+              value={filters.status}
+              onValueChange={(value: string) =>
+                setFilters((prev) => ({ ...prev, status: value }))
+              }
+            >
               <SelectTrigger className="h-9 w-44">
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
@@ -366,7 +392,7 @@ export const FinanceiroRelatorios = () => {
             </Select>
           </div>
         </div>
-      </div>
+      </SectionCard>
 
       <div className="grid md:grid-cols-4 gap-3">
         <div className="bg-card border rounded-lg p-3">
@@ -391,117 +417,137 @@ export const FinanceiroRelatorios = () => {
         </div>
       </div>
 
-      <section className="bg-card border rounded-lg p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Exposição vs Hedge</h3>
-          <Button variant="outline" size="sm" onClick={exportNet} disabled={!filteredNetRows.length}>
+      <SectionCard
+        title="Exposição vs Hedge"
+        action={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportNet}
+            disabled={!filteredNetRows.length}
+          >
             <Download className="w-4 h-4" />
             CSV
           </Button>
-        </div>
+        }
+      >
         {filteredNetRows.length === 0 ? (
           <div className="text-sm text-muted-foreground border rounded-md p-3 bg-muted/40">Sem dados para os filtros atuais.</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="text-left px-3 py-2 border-b">Commodity</th>
-                  <th className="text-left px-3 py-2 border-b">Período</th>
-                  <th className="text-left px-3 py-2 border-b">Gross Ativa</th>
-                  <th className="text-left px-3 py-2 border-b">Gross Passiva</th>
-                  <th className="text-left px-3 py-2 border-b">Hedge</th>
-                  <th className="text-left px-3 py-2 border-b">Líquida</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Commodity</TableHead>
+                  <TableHead>Período</TableHead>
+                  <TableHead>Gross Ativa</TableHead>
+                  <TableHead>Gross Passiva</TableHead>
+                  <TableHead>Hedge</TableHead>
+                  <TableHead>Líquida</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {filteredNetRows.map((row) => (
-                  <tr key={`${row.product}-${row.period}`} className="border-b last:border-none">
-                    <td className="px-3 py-2">{row.product}</td>
-                    <td className="px-3 py-2">{row.period}</td>
-                    <td className="px-3 py-2">{row.gross_active}</td>
-                    <td className="px-3 py-2">{row.gross_passive}</td>
-                    <td className="px-3 py-2">{row.hedged}</td>
-                    <td className="px-3 py-2 font-semibold">{row.net}</td>
-                  </tr>
+                  <TableRow key={`${row.product}-${row.period}`}>
+                    <TableCell>{row.product}</TableCell>
+                    <TableCell>{row.period}</TableCell>
+                    <TableCell>{row.gross_active}</TableCell>
+                    <TableCell>{row.gross_passive}</TableCell>
+                    <TableCell>{row.hedged}</TableCell>
+                    <TableCell className="font-semibold">{row.net}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
-      </section>
+      </SectionCard>
 
-      <section className="bg-card border rounded-lg p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">MTM por commodity/período</h3>
-          <Button variant="outline" size="sm" onClick={exportMtm} disabled={!filteredMtm.length || loadingMtm}>
+      <SectionCard
+        title="MTM por commodity/período"
+        action={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportMtm}
+            disabled={!filteredMtm.length || loadingMtm}
+          >
             <Download className="w-4 h-4" />
             CSV
           </Button>
-        </div>
+        }
+      >
         {loadingMtm ? (
           <div className="text-sm text-muted-foreground">Carregando MTM...</div>
         ) : filteredMtm.length === 0 ? (
           <div className="text-sm text-muted-foreground border rounded-md p-3 bg-muted/40">Sem snapshots para os filtros.</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="text-left px-3 py-2 border-b">Tipo</th>
-                  <th className="text-left px-3 py-2 border-b">Entidade</th>
-                  <th className="text-left px-3 py-2 border-b">Commodity</th>
-                  <th className="text-left px-3 py-2 border-b">Período</th>
-                  <th className="text-left px-3 py-2 border-b">Preço</th>
-                  <th className="text-left px-3 py-2 border-b">Quantidade</th>
-                  <th className="text-left px-3 py-2 border-b">MTM</th>
-                  <th className="text-left px-3 py-2 border-b">As of</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Entidade</TableHead>
+                  <TableHead>Commodity</TableHead>
+                  <TableHead>Período</TableHead>
+                  <TableHead>Preço</TableHead>
+                  <TableHead>Quantidade</TableHead>
+                  <TableHead>MTM</TableHead>
+                  <TableHead>As of</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {filteredMtm.map((snap) => (
-                  <tr key={snap.id} className="border-b last:border-none">
-                    <td className="px-3 py-2 capitalize text-xs">{snap.object_type}</td>
-                    <td className="px-3 py-2">{snap.object_id || '-'}</td>
-                    <td className="px-3 py-2">{snap.product || '-'}</td>
-                    <td className="px-3 py-2">{snap.period || '-'}</td>
-                    <td className="px-3 py-2">{snap.price}</td>
-                    <td className="px-3 py-2">{snap.quantity_mt}</td>
-                    <td className="px-3 py-2 font-semibold">{snap.mtm_value}</td>
-                    <td className="px-3 py-2">{snap.as_of_date}</td>
-                  </tr>
+                  <TableRow key={snap.id}>
+                    <TableCell className="capitalize text-xs">
+                      {snap.object_type}
+                    </TableCell>
+                    <TableCell>{snap.object_id || "-"}</TableCell>
+                    <TableCell>{snap.product || "-"}</TableCell>
+                    <TableCell>{snap.period || "-"}</TableCell>
+                    <TableCell>{snap.price}</TableCell>
+                    <TableCell>{snap.quantity_mt}</TableCell>
+                    <TableCell className="font-semibold">{snap.mtm_value}</TableCell>
+                    <TableCell>{snap.as_of_date}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
-      </section>
+      </SectionCard>
 
-      <section className="bg-card border rounded-lg p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">RFQs e spreads</h3>
-          <Button variant="outline" size="sm" onClick={exportRfqs} disabled={!filteredRfqs.length}>
+      <SectionCard
+        title="RFQs e spreads"
+        action={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportRfqs}
+            disabled={!filteredRfqs.length}
+          >
             <Download className="w-4 h-4" />
             CSV
           </Button>
-        </div>
+        }
+      >
         {filteredRfqs.length === 0 ? (
           <div className="text-sm text-muted-foreground border rounded-md p-3 bg-muted/40">Nenhum RFQ para os filtros aplicados.</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="text-left px-3 py-2 border-b">RFQ</th>
-                  <th className="text-left px-3 py-2 border-b">Período</th>
-                  <th className="text-left px-3 py-2 border-b">Lado</th>
-                  <th className="text-left px-3 py-2 border-b">Status</th>
-                  <th className="text-left px-3 py-2 border-b">Cotações</th>
-                  <th className="text-left px-3 py-2 border-b">Spread</th>
-                  <th className="text-left px-3 py-2 border-b">Melhor</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>RFQ</TableHead>
+                  <TableHead>Período</TableHead>
+                  <TableHead>Lado</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Cotações</TableHead>
+                  <TableHead>Spread</TableHead>
+                  <TableHead>Melhor</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {filteredRfqs.map((rfq) => {
                   const side = rfq.side || 'buy';
                   const ranking = [...rfq.counterparty_quotes].sort((a, b) =>
@@ -510,14 +556,18 @@ export const FinanceiroRelatorios = () => {
                   const spread = computeSpread(rfq.counterparty_quotes, side);
                   const best = ranking[0];
                   return (
-                    <tr key={rfq.id} className="border-b last:border-none align-top">
-                      <td className="px-3 py-2 font-medium">{rfq.rfq_number}</td>
-                      <td className="px-3 py-2">{rfq.period}</td>
-                      <td className="px-3 py-2 capitalize text-xs">{side}</td>
-                      <td className="px-3 py-2">
-                        <span className="px-2 py-1 rounded-full bg-muted text-[12px] capitalize">{rfq.status}</span>
-                      </td>
-                      <td className="px-3 py-2">
+                    <TableRow key={rfq.id} className="align-top">
+                      <TableCell className="font-medium">
+                        {rfq.rfq_number}
+                      </TableCell>
+                      <TableCell>{rfq.period}</TableCell>
+                      <TableCell className="capitalize text-xs">{side}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="capitalize">
+                          {rfq.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
                         {rfq.counterparty_quotes.length === 0 ? (
                           <span className="text-muted-foreground text-xs">Sem respostas</span>
                         ) : (
@@ -535,19 +585,19 @@ export const FinanceiroRelatorios = () => {
                             ))}
                           </div>
                         )}
-                      </td>
-                      <td className="px-3 py-2">{spread.toFixed(2)}</td>
-                      <td className="px-3 py-2">
+                      </TableCell>
+                      <TableCell>{spread.toFixed(2)}</TableCell>
+                      <TableCell>
                         {best ? `${best.counterparty_name || 'N/D'} • ${best.quote_price.toFixed(2)}` : '—'}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
-      </section>
-    </div>
+      </SectionCard>
+    </Page>
   );
 };

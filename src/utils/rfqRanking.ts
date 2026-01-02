@@ -61,7 +61,11 @@ export const rankRfq = (rfq: Rfq) => {
       score = side === 'buy' ? -price : price;
       display = formatMoney(price);
     } else {
-      const ordered = [...trades].sort((a, b) => a.quotedAt - b.quotedAt);
+      const ordered = [...trades].sort((a, b) => {
+        const aQuoted = a.quotedAt ?? Number.MAX_SAFE_INTEGER;
+        const bQuoted = b.quotedAt ?? Number.MAX_SAFE_INTEGER;
+        return aQuoted - bQuoted;
+      });
       const first = ordered[0];
       const last = ordered[ordered.length - 1];
       const spread = (last?.buyPrice ?? 0) - (first?.buyPrice ?? 0);

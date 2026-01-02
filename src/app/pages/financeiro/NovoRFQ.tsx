@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Copy, Send, Mail, ChevronDown } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { ChevronDown, Copy, Mail, Plus, Send, Trash2 } from "lucide-react";
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -33,6 +33,15 @@ import {
   RfqSide,
 } from '../../../types/api';
 import { useData } from '../../../contexts/DataContextAPI';
+import { Page, PageHeader } from "../../components/ui/page";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../../components/ui/table";
 
 interface Trade {
   id: number;
@@ -144,7 +153,7 @@ export const NovoRFQ = () => {
     setTrades(trades.map(t => {
       if (t.id === tradeId) {
         const updatedLeg = { ...t[leg], ...updates };
-        
+
         // Sincronizar Buy/Sell entre legs
         if ('side' in updates) {
           const otherLeg = leg === 'leg1' ? 'leg2' : 'leg1';
@@ -155,7 +164,7 @@ export const NovoRFQ = () => {
             [otherLeg]: { ...t[otherLeg], side: otherSide }
           };
         }
-        
+
         return { ...t, [leg]: updatedLeg };
       }
       return t;
@@ -387,7 +396,7 @@ export const NovoRFQ = () => {
     try {
       await rfqsService.addQuote(createdRfqId, {
         counterparty_id: invitation.counterparty_id,
-        counterparty_name: invitation.counterparty_name,
+        counterparty_name: invitation.counterparty_name || 'Contraparte',
         quote_price: quoteValue,
         status: nextStatus || 'answered',
       });
@@ -407,19 +416,18 @@ export const NovoRFQ = () => {
     );
 
   return (
-    <div className="p-5 space-y-5 bg-muted/30">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-xl font-semibold text-foreground">Novo RFQ</h2>
-          <p className="text-sm text-muted-foreground">Convite único para múltiplas contrapartes</p>
-        </div>
-        {sourceInfo?.sourceNumber && (
-          <div className="px-3 py-2 border text-sm rounded-md bg-card text-foreground">
-            Origem: {sourceInfo.sourceType?.toUpperCase()} {sourceInfo.sourceNumber}
-          </div>
-        )}
-      </div>
+    <Page>
+      <PageHeader
+        title="Novo RFQ"
+        description="Convite único para múltiplas contrapartes"
+        meta={
+          sourceInfo?.sourceNumber ? (
+            <span className="inline-flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm text-foreground">
+              Origem: {sourceInfo.sourceType?.toUpperCase()} {sourceInfo.sourceNumber}
+            </span>
+          ) : undefined
+        }
+      />
 
       {(error || statusMessage) && (
         <div className={`text-sm px-3 py-2 rounded-md border ${error ? 'border-destructive text-destructive bg-destructive/10' : 'border-emerald-200 text-emerald-700 bg-emerald-50'}`}>
@@ -542,20 +550,20 @@ export const NovoRFQ = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="text-left px-3 py-2 border-b">Contraparte</th>
-                  <th className="text-left px-3 py-2 border-b">Status</th>
-                  <th className="text-left px-3 py-2 border-b">Cotação</th>
-                  <th className="text-left px-3 py-2 border-b">Ação</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Contraparte</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Cotação</TableHead>
+                  <TableHead>Ação</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {invitations.map((inv) => (
-                  <tr key={inv.counterparty_id} className="border-b last:border-none">
-                    <td className="px-3 py-2">{inv.counterparty_name}</td>
-                    <td className="px-3 py-2">
+                  <TableRow key={inv.counterparty_id}>
+                    <TableCell>{inv.counterparty_name}</TableCell>
+                    <TableCell>
                       <Select
                         value={inv.status}
                         onValueChange={(value: InvitationStatus) =>
@@ -566,7 +574,7 @@ export const NovoRFQ = () => {
                           )
                         }
                       >
-                        <SelectTrigger className="h-9 text-xs">
+                        <SelectTrigger size="sm" className="text-xs">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -576,8 +584,8 @@ export const NovoRFQ = () => {
                           <SelectItem value="refused">Recusado</SelectItem>
                         </SelectContent>
                       </Select>
-                    </td>
-                    <td className="px-3 py-2">
+                    </TableCell>
+                    <TableCell>
                       <Input
                         type="number"
                         placeholder="Preço"
@@ -591,8 +599,8 @@ export const NovoRFQ = () => {
                           );
                         }}
                       />
-                    </td>
-                    <td className="px-3 py-2">
+                    </TableCell>
+                    <TableCell>
                       <Button
                         size="sm"
                         variant="outline"
@@ -601,11 +609,11 @@ export const NovoRFQ = () => {
                       >
                         Registrar resposta
                       </Button>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
 
@@ -615,26 +623,26 @@ export const NovoRFQ = () => {
               <p className="text-sm font-semibold">Ranking</p>
               <span className="text-xs text-muted-foreground">{rfqSide === 'buy' ? 'Menor preço vence' : 'Maior preço vence'}</span>
             </div>
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr>
-                  <th className="text-left px-3 py-2 border-b">#</th>
-                  <th className="text-left px-3 py-2 border-b">Contraparte</th>
-                  <th className="text-left px-3 py-2 border-b">Preço</th>
-                  <th className="text-left px-3 py-2 border-b">Status</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>#</TableHead>
+                  <TableHead>Contraparte</TableHead>
+                  <TableHead>Preço</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {sortedInvitations.map((inv, idx) => (
-                  <tr key={inv.counterparty_id} className="border-b last:border-none">
-                    <td className="px-3 py-2 font-semibold">{idx + 1}</td>
-                    <td className="px-3 py-2">{inv.counterparty_name}</td>
-                    <td className="px-3 py-2">{inv.quote_price?.toFixed(2)}</td>
-                    <td className="px-3 py-2 capitalize text-xs">{inv.status}</td>
-                  </tr>
+                  <TableRow key={inv.counterparty_id}>
+                    <TableCell className="font-semibold">{idx + 1}</TableCell>
+                    <TableCell>{inv.counterparty_name}</TableCell>
+                    <TableCell>{inv.quote_price?.toFixed(2)}</TableCell>
+                    <TableCell className="capitalize text-xs">{inv.status}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </Card>
@@ -718,7 +726,7 @@ export const NovoRFQ = () => {
           </Button>
         </div>
       </Card>
-    </div>
+    </Page>
   );
 };
 

@@ -1,16 +1,37 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { Card } from '../../components/ui/card';
-import { useData } from '../../../contexts/DataContextAPI';
-import { rfqsService } from '../../../services/rfqsService';
-import { Rfq, RfqInvitationAnyStatus, RfqInvitationStatus, WhatsAppMessage, Contract } from '../../../types/api';
-import { whatsappService } from '../../../services/whatsappService';
-import { rankRfq } from '../../../utils/rfqRanking';
-import { contractsService } from '../../../services/contractsService';
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+
+import { useData } from "../../../contexts/DataContextAPI";
+import { contractsService } from "../../../services/contractsService";
+import { rfqsService } from "../../../services/rfqsService";
+import { whatsappService } from "../../../services/whatsappService";
+import {
+  Contract,
+  RfqInvitationStatus,
+  WhatsAppMessage,
+} from "../../../types/api";
+import { rankRfq } from "../../../utils/rfqRanking";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Card } from "../../components/ui/card";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import { Page, PageHeader, SectionCard } from "../../components/ui/page";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../../components/ui/table";
 
 const statusLabel: Record<RfqInvitationStatus, string> = {
   draft: 'Rascunho',
@@ -51,6 +72,10 @@ export const RFQDetalhe = () => {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const rfq = useMemo(() => rfqs.find((item) => String(item.id) === String(id)), [rfqs, id]);
   const isClosed = rfq?.status === 'awarded' || rfq?.status === 'failed';
+  const ranking: ReturnType<typeof rankRfq> = rfq
+    ? rankRfq(rfq)
+    : { side: "buy", entries: [] };
+  const best = ranking.entries[0];
 
   useEffect(() => {
     if (!rfqs.length) {
@@ -162,8 +187,6 @@ export const RFQDetalhe = () => {
   }, [rfq.counterparty_quotes, rfq.invitations]);
 
   const pendingInvites = invitations.filter((inv) => inv.status === 'sent' || inv.status === 'draft').length;
-  const ranking = rankRfq(rfq);
-  const best = ranking.entries[0];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -245,31 +268,43 @@ export const RFQDetalhe = () => {
   };
 
   return (
-    <div className="p-5 space-y-4">
-      <div className="flex items-center justify-between">
+    <Page>
+      <PageHeader
+        eyebrow="RFQ"
+        title={rfq.rfq_number}
+        description={`SO ${rfq.so_id} • ${rfq.quantity_mt} MT • Período ${rfq.period}`}
+        actions={
+          <>
+            <Button variant="secondary" size="sm" onClick={() => setShowRanking(true)}>
+              Ver ranking
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownload}
+              disabled={downloading || !rfq.counterparty_quotes.length}
+            >
+              {downloading ? "Gerando..." : "Exportar histórico"}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/financeiro/rfqs")}>
+              Voltar
+            </Button>
+          </>
+        }
+      />
+      {(rfq.decided_at || isClosed) && (
         <div>
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">RFQ</p>
-          <h1 className="text-xl font-semibold">{rfq.rfq_number}</h1>
-          <p className="text-sm text-muted-foreground">SO {rfq.so_id} • {rfq.quantity_mt} MT • Período {rfq.period}</p>
-          {rfq.decided_at && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Decisão em {new Date(rfq.decided_at).toLocaleString()} {rfq.decision_reason ? `• ${rfq.decision_reason}` : ''}
+          {rfq.decided_at ? (
+            <p className="text-xs text-muted-foreground">
+              Decisão em {new Date(rfq.decided_at).toLocaleString()}{" "}
+              {rfq.decision_reason ? `• ${rfq.decision_reason}` : ""}
             </p>
-          )}
-          {isClosed && <p className="text-xs text-emerald-700 font-semibold mt-1">RFQ encerrado</p>}
+          ) : null}
+          {isClosed ? (
+            <p className="text-xs text-success font-semibold mt-1">RFQ encerrado</p>
+          ) : null}
         </div>
-        <div className="flex gap-2">
-          <Button variant="secondary" size="sm" onClick={() => setShowRanking(true)}>
-            Ver ranking
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleDownload} disabled={downloading || !rfq.counterparty_quotes.length}>
-            {downloading ? 'Gerando...' : 'Exportar histórico'}
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => navigate('/financeiro/rfqs')}>
-            Voltar
-          </Button>
-        </div>
-      </div>
+      )}
 
       {(message || error) && (
         <div className={`text-sm px-3 py-2 rounded-md border ${error ? 'border-destructive text-destructive bg-destructive/10' : 'border-emerald-200 text-emerald-700 bg-emerald-50'}`}>
@@ -308,11 +343,7 @@ export const RFQDetalhe = () => {
         )}
       </div>
 
-      <section className="bg-card border rounded-lg p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Convites</h3>
-          <span className="text-xs text-muted-foreground">Status por contraparte</span>
-        </div>
+      <SectionCard title="Convites" description="Status por contraparte">
         {invitations.length === 0 ? (
           <div className="text-sm text-muted-foreground border rounded-md p-3 bg-muted/40">Nenhuma contraparte vinculada.</div>
         ) : (
@@ -324,20 +355,19 @@ export const RFQDetalhe = () => {
                   <p className="text-xs text-muted-foreground">{inv.responded_at ? `Resposta em ${inv.responded_at}` : 'Aguardando resposta'}</p>
                   {inv.message_text && <p className="text-xs text-muted-foreground mt-1">Mensagem enviada: {inv.message_text}</p>}
                 </div>
-                <span className="px-2 py-1 rounded-full bg-muted text-[11px] capitalize">
+                <Badge variant="secondary" className="text-[11px] capitalize">
                   {statusLabel[inv.status]}
-                </span>
+                </Badge>
               </div>
             ))}
           </div>
         )}
-      </section>
+      </SectionCard>
 
-      <section className="bg-card border rounded-lg p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Mensagens WhatsApp</h3>
-          <span className="text-xs text-muted-foreground">{messages.length} registradas</span>
-        </div>
+      <SectionCard
+        title="Mensagens WhatsApp"
+        action={<span className="text-xs text-muted-foreground">{messages.length} registradas</span>}
+      >
         {messages.length === 0 ? (
           <div className="text-sm text-muted-foreground border rounded-md p-3 bg-muted/40">Nenhuma mensagem vinculada.</div>
         ) : (
@@ -358,13 +388,12 @@ export const RFQDetalhe = () => {
             Exportar CSV
           </Button>
         </div>
-      </section>
+      </SectionCard>
 
-      <section className="bg-card border rounded-lg p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Contracts gerados</h3>
-          <span className="text-xs text-muted-foreground">{contracts.length} registrados</span>
-        </div>
+      <SectionCard
+        title="Contracts gerados"
+        action={<span className="text-xs text-muted-foreground">{contracts.length} registrados</span>}
+      >
         {contracts.length === 0 ? (
           <div className="text-sm text-muted-foreground border rounded-md p-3 bg-muted/40">Nenhum contract criado.</div>
         ) : (
@@ -381,59 +410,90 @@ export const RFQDetalhe = () => {
             ))}
           </div>
         )}
-      </section>
+      </SectionCard>
 
       {!isClosed && (
-      <section className="bg-card border rounded-lg p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Registrar cotação</h3>
-          <span className="text-xs text-muted-foreground">Imutável após envio</span>
-        </div>
-        <form className="grid md:grid-cols-6 gap-3" onSubmit={handleSubmit}>
-          <div className="md:col-span-2 space-y-1">
-            <Label className="text-xs text-muted-foreground">Contraparte</Label>
-            <Select value={selectedCounterparty} onValueChange={setSelectedCounterparty}>
-              <SelectTrigger className="h-10">
-                <SelectValue placeholder="Selecione" />
-              </SelectTrigger>
-              <SelectContent>
-                {invitations.map((inv) => (
-                  <SelectItem key={inv.counterparty_id} value={String(inv.counterparty_id)}>
-                    {inv.counterparty_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Preço</Label>
-            <Input value={price} onChange={(e) => setPrice(e.target.value)} type="number" min="0" step="0.01" placeholder="0.00" required />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Volume</Label>
-            <Input value={volume} onChange={(e) => setVolume(e.target.value)} type="number" min="0" step="0.01" placeholder="MT" />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Tipo de preço</Label>
-            <Input value={priceType} onChange={(e) => setPriceType(e.target.value)} placeholder="Fixo, LME + prêmio..." />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Timestamp</Label>
-            <Input value={quotedAt} onChange={(e) => setQuotedAt(e.target.value)} type="datetime-local" required />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Validade (opcional)</Label>
-            <Input value={validUntil} onChange={(e) => setValidUntil(e.target.value)} type="datetime-local" />
-          </div>
-          <div className="md:col-span-6 space-y-1">
-            <Label className="text-xs text-muted-foreground">Observações</Label>
-            <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Detalhes fornecidos pela contraparte" />
-          </div>
-          <Button type="submit" className="md:col-span-6" disabled={saving}>
-            {saving ? 'Registrando...' : 'Registrar resposta'}
-          </Button>
-        </form>
-      </section>
+        <SectionCard title="Registrar cotação" description="Imutável após envio">
+          <form className="grid md:grid-cols-6 gap-3" onSubmit={handleSubmit}>
+            <div className="md:col-span-2 space-y-1">
+              <Label className="text-xs text-muted-foreground">Contraparte</Label>
+              <Select value={selectedCounterparty} onValueChange={setSelectedCounterparty}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {invitations.map((inv) => (
+                    <SelectItem
+                      key={inv.counterparty_id}
+                      value={String(inv.counterparty_id)}
+                    >
+                      {inv.counterparty_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Preço</Label>
+              <Input
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Volume</Label>
+              <Input
+                value={volume}
+                onChange={(e) => setVolume(e.target.value)}
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="MT"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Tipo de preço</Label>
+              <Input
+                value={priceType}
+                onChange={(e) => setPriceType(e.target.value)}
+                placeholder="Fixo, LME + prêmio..."
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Timestamp</Label>
+              <Input
+                value={quotedAt}
+                onChange={(e) => setQuotedAt(e.target.value)}
+                type="datetime-local"
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Validade (opcional)</Label>
+              <Input
+                value={validUntil}
+                onChange={(e) => setValidUntil(e.target.value)}
+                type="datetime-local"
+              />
+            </div>
+            <div className="md:col-span-6 space-y-1">
+              <Label className="text-xs text-muted-foreground">Observações</Label>
+              <Input
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Detalhes fornecidos pela contraparte"
+              />
+            </div>
+            <Button type="submit" className="md:col-span-6" disabled={saving}>
+              {saving ? "Registrando..." : "Registrar resposta"}
+            </Button>
+          </form>
+        </SectionCard>
       )}
 
       {showRanking && (
@@ -449,18 +509,42 @@ export const RFQDetalhe = () => {
             <div className="text-sm text-muted-foreground border rounded-md p-3 bg-muted/40">Sem cotações recebidas.</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-muted">
-                  <tr>
-                    <th className="text-left px-3 py-2 border-b cursor-pointer" onClick={() => { setSortBy('pos'); setSortDir(sortDir === 'asc' ? 'desc' : 'asc'); }}>Pos</th>
-                    <th className="text-left px-3 py-2 border-b cursor-pointer" onClick={() => { setSortBy('cp'); setSortDir(sortDir === 'asc' ? 'desc' : 'asc'); }}>Contraparte</th>
-                    <th className="text-left px-3 py-2 border-b">Status</th>
-                    <th className="text-left px-3 py-2 border-b cursor-pointer" onClick={() => { setSortBy('score'); setSortDir(sortDir === 'asc' ? 'desc' : 'asc'); }}>Score</th>
-                    <th className="text-left px-3 py-2 border-b">Detalhe</th>
-                    <th className="text-left px-3 py-2 border-b">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead
+                      className="cursor-pointer"
+                      onClick={() => {
+                        setSortBy("pos");
+                        setSortDir(sortDir === "asc" ? "desc" : "asc");
+                      }}
+                    >
+                      Pos
+                    </TableHead>
+                    <TableHead
+                      className="cursor-pointer"
+                      onClick={() => {
+                        setSortBy("cp");
+                        setSortDir(sortDir === "asc" ? "desc" : "asc");
+                      }}
+                    >
+                      Contraparte
+                    </TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead
+                      className="cursor-pointer"
+                      onClick={() => {
+                        setSortBy("score");
+                        setSortDir(sortDir === "asc" ? "desc" : "asc");
+                      }}
+                    >
+                      Score
+                    </TableHead>
+                    <TableHead>Detalhe</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {sortedEntries.map((entry, idx) => {
                     const isWinner = !!rfq.winner_quote_id && entry.trades.some((t) =>
                       rfq.counterparty_quotes.find((q) => q.id === rfq.winner_quote_id && (q.quote_group_id || `q-${q.id}`) === t.groupId)
@@ -471,12 +555,29 @@ export const RFQDetalhe = () => {
                     const spread = isSpread && sellLeg ? (sellLeg.sellPrice ?? sellLeg.buyPrice) - buyLeg.buyPrice : undefined;
                     const spreadClass = spread !== undefined ? (spread >= 0 ? 'text-emerald-700' : 'text-rose-700') : '';
                     return (
-                      <tr key={`${entry.counterparty_name}-${idx}`} className={`border-b last:border-none ${idx === 0 ? 'bg-muted/30' : ''}`}>
-                        <td className="px-3 py-2 font-semibold">{idx + 1}{idx === 0 && <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">Melhor</span>}</td>
-                        <td className="px-3 py-2">{entry.counterparty_name || 'Contraparte'}</td>
-                        <td className="px-3 py-2 text-xs text-muted-foreground">{isWinner ? 'Selecionada' : rfq.status}</td>
-                        <td className={`px-3 py-2 font-semibold ${spreadClass}`}>{entry.display}</td>
-                        <td className="px-3 py-2 text-xs text-muted-foreground">
+                      <TableRow
+                        key={`${entry.counterparty_name}-${idx}`}
+                        className={idx === 0 ? "bg-muted/30" : undefined}
+                      >
+                        <TableCell className="font-semibold">
+                          {idx + 1}
+                          {idx === 0 && (
+                            <Badge
+                              variant="secondary"
+                              className="ml-2 text-[11px] bg-emerald-50 text-emerald-700 border-emerald-100"
+                            >
+                              Melhor
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>{entry.counterparty_name || "Contraparte"}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {isWinner ? "Selecionada" : rfq.status}
+                        </TableCell>
+                        <TableCell className={`font-semibold ${spreadClass}`}>
+                          {entry.display}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
                           {isSpread ? (
                             <div className="space-y-1">
                               <div>Compra: {buyLeg ? `USD ${buyLeg.buyPrice.toFixed(2)}` : '—'}</div>
@@ -486,8 +587,8 @@ export const RFQDetalhe = () => {
                           ) : (
                             <span>{entry.display}</span>
                           )}
-                        </td>
-                        <td className="px-3 py-2 space-x-2">
+                        </TableCell>
+                        <TableCell className="space-x-2">
                           <Button
                             size="sm"
                             className="h-8"
@@ -525,12 +626,12 @@ export const RFQDetalhe = () => {
                           >
                             Recusar
                           </Button>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
           {best && (
@@ -540,6 +641,6 @@ export const RFQDetalhe = () => {
           )}
         </div>
       )}
-    </div>
+    </Page>
   );
 };

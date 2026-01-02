@@ -1,9 +1,31 @@
-import React, { useEffect, useState } from 'react';
-import { Plus, X, Building2 } from 'lucide-react';
-import * as Dialog from '@radix-ui/react-dialog';
-import { useData } from '../../../contexts/DataContextAPI';
-import { counterpartiesService } from '../../../services/counterpartiesService';
-import { Counterparty, CounterpartyType } from '../../../types/api';
+import React, { useEffect, useState } from "react";
+import { Building2, Plus } from "lucide-react";
+
+import { useData } from "../../../contexts/DataContextAPI";
+import { counterpartiesService } from "../../../services/counterpartiesService";
+import { Counterparty, CounterpartyType } from "../../../types/api";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Checkbox } from "../../components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../../components/ui/dialog";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import { Page, PageHeader, SectionCard } from "../../components/ui/page";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
+import { Textarea } from "../../components/ui/textarea";
 
 type FormState = {
   name: string;
@@ -110,269 +132,274 @@ export const FinanceiroContrapartes = () => {
   const itemBadge = (cp: Counterparty) => (cp.active ? 'text-emerald-700 bg-emerald-50' : 'text-slate-600 bg-slate-100');
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-xl font-semibold">Contrapartes</h2>
-          <p className="text-muted-foreground text-sm">Cadastro internacional de bancos, brokers e parceiros.</p>
-        </div>
+    <Page>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <PageHeader
+          title="Contrapartes"
+          description="Cadastro internacional de bancos, brokers e parceiros."
+          actions={
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="w-4 h-4" />
+                Nova contraparte
+              </Button>
+            </DialogTrigger>
+          }
+        />
 
-        <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
-          <Dialog.Trigger asChild>
-            <button className="flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90">
-              <Plus className="w-4 h-4" />
-              Nova contraparte
-            </button>
-          </Dialog.Trigger>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Cadastrar contraparte</DialogTitle>
+          </DialogHeader>
 
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 bg-black/50 z-40" />
-            <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card border rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto z-50">
-              <div className="flex justify-between items-center mb-4">
-                <Dialog.Title className="text-lg font-semibold">Cadastrar contraparte</Dialog.Title>
-                <Dialog.Close asChild>
-                  <button className="p-2 hover:bg-accent rounded-md">
-                    <X className="w-5 h-5" />
-                  </button>
-                </Dialog.Close>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Nome legal *</Label>
+                <Input
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                  placeholder="Instituição / empresa"
+                />
               </div>
+              <div className="space-y-1">
+                <Label>Nome fantasia</Label>
+                <Input
+                  value={formData.trade_name}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, trade_name: e.target.value }))}
+                />
+              </div>
+            </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Nome legal *</label>
-                    <input
-                      required
-                      value={formData.name}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="Instituição / empresa"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Nome fantasia</label>
-                    <input
-                      value={formData.trade_name}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, trade_name: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                    />
-                  </div>
+            <div className="grid md:grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label>Tipo</Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, type: value as CounterpartyType }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={CounterpartyType.BANK}>Banco</SelectItem>
+                    <SelectItem value={CounterpartyType.BROKER}>Corretora</SelectItem>
+                    <SelectItem value={CounterpartyType.COMPANY}>Empresa</SelectItem>
+                    <SelectItem value={CounterpartyType.TRADING}>Trading</SelectItem>
+                    <SelectItem value={CounterpartyType.INDIVIDUAL}>Pessoa física</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Contato</Label>
+                <Input
+                  value={formData.contact_name}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, contact_name: e.target.value }))}
+                  placeholder="Responsável"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label>E-mail</Label>
+                  <Input
+                    type="email"
+                    value={formData.contact_email}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, contact_email: e.target.value }))}
+                    placeholder="email@empresa.com"
+                  />
                 </div>
-
-                <div className="grid md:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Tipo</label>
-                    <select
-                      value={formData.type}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, type: e.target.value as CounterpartyType }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                    >
-                      <option value={CounterpartyType.BANK}>Banco</option>
-                      <option value={CounterpartyType.BROKER}>Corretora</option>
-                      <option value={CounterpartyType.COMPANY}>Empresa</option>
-                      <option value={CounterpartyType.TRADING}>Trading</option>
-                      <option value={CounterpartyType.INDIVIDUAL}>Pessoa física</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Contato</label>
-                    <input
-                      value={formData.contact_name}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, contact_name: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="Responsável"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="email"
-                      value={formData.contact_email}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, contact_email: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="E-mail"
-                    />
-                    <input
-                      value={formData.contact_phone}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, contact_phone: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="Telefone"
-                    />
-                  </div>
+                <div className="space-y-1">
+                  <Label>Telefone</Label>
+                  <Input
+                    value={formData.contact_phone}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, contact_phone: e.target.value }))}
+                    placeholder="+1 202 555 0100"
+                  />
                 </div>
+              </div>
+            </div>
 
-                <div className="grid md:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Identificação fiscal</label>
-                    <input
-                      value={formData.tax_id_type}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, tax_id_type: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="CNPJ / VAT / EIN / TIN"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Número</label>
-                    <input
-                      value={formData.tax_id_value}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, tax_id_value: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">País emissor</label>
-                    <input
-                      value={formData.tax_id_country}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, tax_id_country: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="País"
-                    />
-                  </div>
+            <div className="grid md:grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label>Identificação fiscal</Label>
+                <Input
+                  value={formData.tax_id_type}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, tax_id_type: e.target.value }))}
+                  placeholder="CNPJ / VAT / EIN / TIN"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Número</Label>
+                <Input
+                  value={formData.tax_id_value}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, tax_id_value: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>País emissor</Label>
+                <Input
+                  value={formData.tax_id_country}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, tax_id_country: e.target.value }))}
+                  placeholder="País"
+                />
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label>Endereço</Label>
+                <Input
+                  value={formData.address_line}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, address_line: e.target.value }))}
+                  placeholder="Linha principal"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label>Cidade</Label>
+                  <Input
+                    value={formData.city}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, city: e.target.value }))}
+                    placeholder="Cidade"
+                  />
                 </div>
-
-                <div className="grid md:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Endereço</label>
-                    <input
-                      value={formData.address_line}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, address_line: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="Linha principal"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      value={formData.city}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, city: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="Cidade"
-                    />
-                    <input
-                      value={formData.state}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, state: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="Região/Estado"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      value={formData.country}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, country: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="País"
-                    />
-                    <input
-                      value={formData.postal_code}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, postal_code: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="Código postal"
-                    />
-                  </div>
+                <div className="space-y-1">
+                  <Label>Região/Estado</Label>
+                  <Input
+                    value={formData.state}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, state: e.target.value }))}
+                    placeholder="UF/Estado"
+                  />
                 </div>
-
-                <div className="grid md:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Moeda base</label>
-                    <input
-                      value={formData.base_currency}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, base_currency: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="USD, EUR..."
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Condições de pagamento</label>
-                    <input
-                      value={formData.payment_terms}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, payment_terms: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="30/45/60"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      value={formData.country_incorporation}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, country_incorporation: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="País incorp."
-                    />
-                    <input
-                      value={formData.country_operation}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, country_operation: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="País operação"
-                    />
-                  </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label>País</Label>
+                  <Input
+                    value={formData.country}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, country: e.target.value }))}
+                    placeholder="País"
+                  />
                 </div>
-
-                <div className="grid md:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Rating / risco</label>
-                    <input
-                      value={formData.risk_rating}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, risk_rating: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="ex: BBB-"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      id="sanctions_flag"
-                      type="checkbox"
-                      checked={formData.sanctions_flag}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, sanctions_flag: e.target.checked }))}
-                      className="h-4 w-4"
-                    />
-                    <label htmlFor="sanctions_flag" className="text-sm">Flag de sanções</label>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Status KYC/KYP</label>
-                    <input
-                      value={formData.kyc_status}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, kyc_status: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="pending / approved"
-                    />
-                  </div>
+                <div className="space-y-1">
+                  <Label>Código postal</Label>
+                  <Input
+                    value={formData.postal_code}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, postal_code: e.target.value }))}
+                    placeholder="Código postal"
+                  />
                 </div>
+              </div>
+            </div>
 
-                <div className="grid md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Notas internas</label>
-                    <textarea
-                      value={formData.internal_notes}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, internal_notes: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm min-h-[80px]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Observações KYC</label>
-                    <textarea
-                      value={formData.kyc_notes}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, kyc_notes: e.target.value }))}
-                      className="w-full border rounded-md px-3 py-2 text-sm min-h-[80px]"
-                    />
-                  </div>
+            <div className="grid md:grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label>Moeda base</Label>
+                <Input
+                  value={formData.base_currency}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, base_currency: e.target.value }))}
+                  placeholder="USD, EUR..."
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Condições de pagamento</Label>
+                <Input
+                  value={formData.payment_terms}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, payment_terms: e.target.value }))}
+                  placeholder="30/45/60"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label>País incorp.</Label>
+                  <Input
+                    value={formData.country_incorporation}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, country_incorporation: e.target.value }))
+                    }
+                    placeholder="País incorp."
+                  />
                 </div>
-
-                <div className="flex items-center justify-end gap-3">
-                  <Dialog.Close asChild>
-                    <button className="px-4 py-2 text-sm rounded-md border hover:bg-muted">Cancelar</button>
-                  </Dialog.Close>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
-                  >
-                    {saving ? 'Salvando...' : 'Salvar'}
-                  </button>
+                <div className="space-y-1">
+                  <Label>País operação</Label>
+                  <Input
+                    value={formData.country_operation}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, country_operation: e.target.value }))
+                    }
+                    placeholder="País operação"
+                  />
                 </div>
-              </form>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
-      </div>
+              </div>
+            </div>
 
-      <div className="bg-card border rounded-lg p-4">
+            <div className="grid md:grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label>Rating / risco</Label>
+                <Input
+                  value={formData.risk_rating}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, risk_rating: e.target.value }))}
+                  placeholder="ex: BBB-"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Status KYC/KYP</Label>
+                <Input
+                  value={formData.kyc_status}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, kyc_status: e.target.value }))}
+                  placeholder="pending / approved"
+                />
+              </div>
+              <div className="flex items-end gap-2 pb-1">
+                <Checkbox
+                  id="sanctions_flag"
+                  checked={formData.sanctions_flag}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({ ...prev, sanctions_flag: !!checked }))
+                  }
+                />
+                <Label htmlFor="sanctions_flag" className="cursor-pointer">
+                  Flag de sanções
+                </Label>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Notas internas</Label>
+                <Textarea
+                  value={formData.internal_notes}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, internal_notes: e.target.value }))
+                  }
+                  className="min-h-[80px]"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Observações KYC</Label>
+                <Textarea
+                  value={formData.kyc_notes}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, kyc_notes: e.target.value }))
+                  }
+                  className="min-h-[80px]"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button type="submit" disabled={saving}>
+                {saving ? "Salvando..." : "Salvar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <SectionCard>
         {loadingCounterparties ? (
           <div className="text-sm text-muted-foreground">Carregando contrapartes...</div>
         ) : counterparties.length === 0 ? (
@@ -389,15 +416,23 @@ export const FinanceiroContrapartes = () => {
                       <p className="text-xs text-muted-foreground">{cp.trade_name || cp.legal_name || '—'}</p>
                     </div>
                   </div>
-                  <span className={`text-[11px] px-2 py-1 rounded-full ${itemBadge(cp)}`}>{cp.type}</span>
+                  <Badge
+                    variant="secondary"
+                    className={`text-[11px] capitalize ${itemBadge(cp)}`}
+                  >
+                    {cp.type}
+                  </Badge>
                 </div>
-                <p className="text-xs text-muted-foreground">{cp.country || 'País não informado'} • {cp.base_currency || 'Moeda não definida'}</p>
+                <p className="text-xs text-muted-foreground">
+                  {cp.country_operation || cp.country_incorporation || 'País não informado'} •{' '}
+                  {cp.base_currency || 'Moeda não definida'}
+                </p>
                 <p className="text-xs text-muted-foreground">{cp.contact_name || 'Contato não informado'} • {cp.contact_email || 'sem e-mail'}</p>
               </div>
             ))}
           </div>
         )}
-      </div>
-    </div>
+      </SectionCard>
+    </Page>
   );
 };

@@ -14,6 +14,7 @@ import { Badge } from '../../components/ui/badge';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Separator } from '../../components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Page, PageHeader } from '../../components/ui/page';
 import { RefreshCw, DollarSign, TrendingUp, TrendingDown, AlertCircle, Calendar } from 'lucide-react';
 import { cn } from '../../components/ui/utils';
 
@@ -267,20 +268,17 @@ export const FinanceiroMTM = () => {
   const negativeHedges = hedges.length - positiveHedges;
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Mark-to-Market</h1>
-          <p className="text-muted-foreground">
-            Valuation de contratos e exposições
-          </p>
-        </div>
-        <Button onClick={loadSnapshots} disabled={loadingSnapshots} variant="outline">
-          <RefreshCw className={cn("h-4 w-4 mr-2", loadingSnapshots && "animate-spin")} />
-          Atualizar
-        </Button>
-      </div>
+    <Page>
+      <PageHeader
+        title="Mark-to-Market"
+        description="Valuation de contratos e exposições"
+        actions={
+          <Button onClick={loadSnapshots} disabled={loadingSnapshots} variant="outline">
+            <RefreshCw className={cn("h-4 w-4 mr-2", loadingSnapshots && "animate-spin")} />
+            Atualizar
+          </Button>
+        }
+      />
 
       {/* Error Alert */}
       {error && (
@@ -300,7 +298,7 @@ export const FinanceiroMTM = () => {
           <CardContent>
             <div className={cn(
               "text-2xl font-bold",
-              totalMTM >= 0 ? "text-green-600" : "text-red-600"
+              totalMTM >= 0 ? "text-success" : "text-destructive"
             )}>
               {formatCurrency(totalMTM)}
             </div>
@@ -326,10 +324,10 @@ export const FinanceiroMTM = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Hedges Positivos</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
+            <TrendingUp className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{positiveHedges}</div>
+            <div className="text-2xl font-bold text-success">{positiveHedges}</div>
             <p className="text-xs text-muted-foreground mt-1">
               Em ganho
             </p>
@@ -339,10 +337,10 @@ export const FinanceiroMTM = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Hedges Negativos</CardTitle>
-            <TrendingDown className="h-4 w-4 text-red-600" />
+            <TrendingDown className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{negativeHedges}</div>
+            <div className="text-2xl font-bold text-destructive">{negativeHedges}</div>
             <p className="text-xs text-muted-foreground mt-1">
               Em perda
             </p>
@@ -394,7 +392,7 @@ export const FinanceiroMTM = () => {
                         <TableCell className="text-right">{row.hedged} MT</TableCell>
                         <TableCell className={cn(
                           "text-right font-semibold",
-                          row.net > 0 ? "text-red-600" : row.net < 0 ? "text-green-600" : ""
+                          row.net > 0 ? "text-destructive" : row.net < 0 ? "text-success" : ""
                         )}>
                           {row.net} MT
                         </TableCell>
@@ -493,7 +491,7 @@ export const FinanceiroMTM = () => {
                           <TableCell className="text-right">{snap.quantity_mt} MT</TableCell>
                           <TableCell className={cn(
                             "text-right font-bold",
-                            (snap.mtm_value || 0) >= 0 ? "text-green-600" : "text-red-600"
+                            (snap.mtm_value || 0) >= 0 ? "text-success" : "text-destructive"
                           )}>
                             {formatCurrency(snap.mtm_value)}
                           </TableCell>
@@ -566,7 +564,7 @@ export const FinanceiroMTM = () => {
                             <p className="text-xs text-muted-foreground">MTM Atual</p>
                             <p className={cn(
                               "text-lg font-bold",
-                              (hedge.mtm_value || 0) >= 0 ? "text-green-600" : "text-red-600"
+                              (hedge.mtm_value || 0) >= 0 ? "text-success" : "text-destructive"
                             )}>
                               {formatCurrency(hedge.mtm_value)}
                             </p>
@@ -810,6 +808,6 @@ export const FinanceiroMTM = () => {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </Page>
   );
 };

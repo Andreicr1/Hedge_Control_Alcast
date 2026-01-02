@@ -5,25 +5,25 @@ import config from '../../config/env';
 
 export const DebugPanel = () => {
   const [isOpen, setIsOpen] = useState(false);
-  
+
   // Tentar usar os hooks com fallback seguro
   let dataContext;
   let authContext;
-  
+
   try {
     dataContext = useData();
   } catch (error) {
     console.warn('DebugPanel: DataContext não disponível ainda');
     dataContext = { isUsingMock: false, purchaseOrders: [], salesOrders: [] };
   }
-  
+
   try {
     authContext = useAuth();
   } catch (error) {
     console.warn('DebugPanel: AuthContext não disponível ainda');
     authContext = { user: null, token: null, isAuthenticated: false };
   }
-  
+
   const { isUsingMock, purchaseOrders, salesOrders } = dataContext;
   const { user, token, isAuthenticated } = authContext;
 
@@ -92,7 +92,7 @@ export const DebugPanel = () => {
             {/* Variáveis de Ambiente */}
             <div className="space-y-1 text-xs">
               <h4 className="font-semibold">🔧 Env Variables</h4>
-              <div className="bg-gray-100 p-2 rounded font-mono">
+              <div className="bg-muted p-2 rounded font-mono">
                 <div>VITE_API_URL: {import.meta.env.VITE_API_URL}</div>
                 <div>VITE_USE_MOCK_DATA: {String(import.meta.env.VITE_USE_MOCK_DATA)}</div>
               </div>
@@ -105,13 +105,13 @@ export const DebugPanel = () => {
                   localStorage.clear();
                   window.location.reload();
                 }}
-                className="w-full bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600"
+                className="w-full bg-destructive text-destructive-foreground px-3 py-1 rounded text-xs hover:bg-destructive/90"
               >
                 🗑️ Limpar Storage e Recarregar
               </button>
               <button
                 onClick={() => window.location.reload()}
-                className="w-full bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600"
+                className="w-full bg-primary text-primary-foreground px-3 py-1 rounded text-xs hover:bg-primary/90"
               >
                 🔄 Recarregar Página
               </button>

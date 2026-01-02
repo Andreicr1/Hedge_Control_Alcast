@@ -1,8 +1,17 @@
-import React, { useMemo, useState } from 'react';
-import { useData } from '../../../contexts/DataContextAPI';
-import { HedgeStatus, MarketObjectType, OrderStatus } from '../../../types/api';
-import { Button } from '../../components/ui/button';
-import { cn } from '../../components/ui/utils';
+import React, { useMemo, useState } from "react";
+import { useData } from "../../../contexts/DataContextAPI";
+import { HedgeStatus, MarketObjectType, OrderStatus } from "../../../types/api";
+import { Button } from "../../components/ui/button";
+import { Page, PageHeader, SectionCard } from "../../components/ui/page";
+import { cn } from "../../components/ui/utils";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../../components/ui/table";
 
 type PendingExposureRow = {
   referencia: string;
@@ -141,78 +150,69 @@ export const FinanceiroDashboard = () => {
   }, [activeContracts]);
 
   return (
-    <div className="p-6 space-y-8">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-        </div>
-      </div>
+    <Page className="space-y-8">
+      <PageHeader title="Dashboard" />
 
       {/* A) Exposições Pendentes */}
-      <section className="bg-card border rounded-lg p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Exposições pendentes</h2>
-          <span className="text-xs text-muted-foreground">{pendingRows.length} itens</span>
-        </div>
-
+      <SectionCard title="Exposições pendentes" action={<span className="text-xs text-muted-foreground">{pendingRows.length} itens</span>}>
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left px-3 py-2 border-b">Referência</th>
-                <th className="text-left px-3 py-2 border-b">Commodity</th>
-                <th className="text-left px-3 py-2 border-b">Quantidade</th>
-                <th className="text-left px-3 py-2 border-b">Período</th>
-                <th className="text-left px-3 py-2 border-b">Status</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Referência</TableHead>
+                <TableHead>Commodity</TableHead>
+                <TableHead>Quantidade</TableHead>
+                <TableHead>Período</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {pendingRows.length === 0 ? (
-                <tr>
-                  <td className="px-3 py-3 text-sm text-muted-foreground" colSpan={5}>
+                <TableRow>
+                  <TableCell className="text-sm text-muted-foreground" colSpan={5}>
                     Nenhuma exposição pendente.
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : (
                 pendingRows.map((row) => (
-                  <tr key={`${row.referencia}-${row.periodo}`} className="border-b last:border-none">
-                    <td className="px-3 py-2 font-medium">{row.referencia}</td>
-                    <td className="px-3 py-2">{row.commodity}</td>
-                    <td className="px-3 py-2">{formatQuantidade(row.quantidadeMt)}</td>
-                    <td className="px-3 py-2">{row.periodo}</td>
-                    <td className="px-3 py-2">{row.status}</td>
-                  </tr>
+                  <TableRow key={`${row.referencia}-${row.periodo}`}>
+                    <TableCell className="font-medium">{row.referencia}</TableCell>
+                    <TableCell>{row.commodity}</TableCell>
+                    <TableCell>{formatQuantidade(row.quantidadeMt)}</TableCell>
+                    <TableCell>{row.periodo}</TableCell>
+                    <TableCell>{row.status}</TableCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
-      </section>
+      </SectionCard>
 
       {/* B) MTM Consolidado */}
-      <section className="bg-card border rounded-lg p-4 space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold">MTM consolidado (contratos ativos)</h2>
+      <SectionCard
+        title="MTM consolidado (contratos ativos)"
+        action={
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 px-2 text-xs"
+            className="h-7 px-2 text-xs"
             onClick={() => setIsMtmExpanded((v) => !v)}
           >
-            {isMtmExpanded ? 'Recolher' : 'Expandir'}
+            {isMtmExpanded ? "Recolher" : "Expandir"}
           </Button>
-        </div>
-
+        }
+      >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="border rounded-md p-3">
+          <div className="border rounded-lg p-3 bg-background">
             <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Ponta comprada</p>
             <p className="mt-1 text-lg font-semibold">{formatUsd(mtmTotals.pontaComprada)}</p>
           </div>
-          <div className="border rounded-md p-3">
+          <div className="border rounded-lg p-3 bg-background">
             <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Ponta vendida</p>
             <p className="mt-1 text-lg font-semibold">{formatUsd(mtmTotals.pontaVendida)}</p>
           </div>
-          <div className="border rounded-md p-3">
+          <div className="border rounded-lg p-3 bg-background">
             <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Diferença</p>
             <p
               className={cn(
@@ -227,57 +227,68 @@ export const FinanceiroDashboard = () => {
 
         {isMtmExpanded && (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="text-left px-3 py-2 border-b">Contraparte</th>
-                  <th className="text-left px-3 py-2 border-b">Quantidade</th>
-                  <th className="text-left px-3 py-2 border-b">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Contraparte</TableHead>
+                  <TableHead>Quantidade</TableHead>
+                  <TableHead>
                     <div className="flex flex-col">
                       <span>Preço (compra)</span>
-                      <span className="text-[11px] text-muted-foreground font-normal">Fixado no contrato</span>
+                      <span className="text-[11px] text-muted-foreground font-normal">
+                        Fixado no contrato
+                      </span>
                     </div>
-                  </th>
-                  <th className="text-left px-3 py-2 border-b">
+                  </TableHead>
+                  <TableHead>
                     <div className="flex flex-col">
                       <span>Preço (venda)</span>
-                      <span className="text-[11px] text-muted-foreground font-normal">Variável (D-1)</span>
+                      <span className="text-[11px] text-muted-foreground font-normal">
+                        Variável (D-1)
+                      </span>
                     </div>
-                  </th>
-                  <th className="text-left px-3 py-2 border-b">MTM do dia</th>
-                </tr>
-              </thead>
-              <tbody>
+                  </TableHead>
+                  <TableHead>MTM do dia</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {activeContracts.length === 0 ? (
-                  <tr>
-                    <td className="px-3 py-3 text-sm text-muted-foreground" colSpan={5}>
+                  <TableRow>
+                    <TableCell className="text-sm text-muted-foreground" colSpan={5}>
                       Nenhum contrato ativo.
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   activeContracts.map((c) => (
-                    <tr key={c.id} className="border-b last:border-none">
-                      <td className="px-3 py-2 font-medium">{c.contraparte}</td>
-                      <td className="px-3 py-2">{formatQuantidade(c.quantidadeMt)}</td>
-                      <td className="px-3 py-2 font-mono">USD {formatPreco(c.precoCompra)}</td>
-                      <td className="px-3 py-2 font-mono">USD {formatPreco(c.precoVenda)}</td>
-                      <td
+                    <TableRow key={c.id}>
+                      <TableCell className="font-medium">{c.contraparte}</TableCell>
+                      <TableCell>{formatQuantidade(c.quantidadeMt)}</TableCell>
+                      <TableCell className="font-mono">
+                        USD {formatPreco(c.precoCompra)}
+                      </TableCell>
+                      <TableCell className="font-mono">
+                        USD {formatPreco(c.precoVenda)}
+                      </TableCell>
+                      <TableCell
                         className={cn(
-                          'px-3 py-2 font-semibold',
-                          (c.mtmDia || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700',
+                          "font-semibold",
+                          (c.mtmDia || 0) >= 0
+                            ? "text-emerald-700"
+                            : "text-rose-700",
                         )}
                       >
-                        {c.mtmDia === undefined || c.mtmDia === null ? '—' : formatUsd(c.mtmDia)}
-                      </td>
-                    </tr>
+                        {c.mtmDia === undefined || c.mtmDia === null
+                          ? "—"
+                          : formatUsd(c.mtmDia)}
+                      </TableCell>
+                    </TableRow>
                   ))
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
-      </section>
-    </div>
+      </SectionCard>
+    </Page>
   );
 };
-

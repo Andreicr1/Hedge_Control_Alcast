@@ -1,0 +1,64 @@
+{
+  "name": "CRM, ERP, WMS —  Part 1 (Community)",
+  "lastModified": "2026-01-01T19:10:05Z",
+  "thumbnailUrl": "https://s3-alpha.figma.com/thumbnails/04e40f8b-a565-44d8-af16-5b74f36c3753?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAQ4GOSFWC5O2WR77M%2F20260101%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20260101T000000Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=7f3106c7db490abc436ae5ec9fa1466ad9e542b263a5e1a7b2fc8fd3a29b8f8b",
+  "version": "2304127783997806647",
+  "role": "owner",
+  "editorType": "figma",
+  "linkAccess": "edit",
+  "nodes": {
+    "4201:3851": {
+      "document": {
+        "id": "4201:3851",
+        "name": "Desktop - 5",
+        "type": "RECTANGLE",
+        "scrollBehavior": "SCROLLS",
+        "blendMode": "PASS_THROUGH",
+        "fills": [
+          {
+            "blendMode": "NORMAL",
+            "type": "IMAGE",
+            "scaleMode": "FILL",
+            "imageRef": "ae819da46423f271bc6613f15b0ebe158cfb2469"
+          }
+        ],
+        "strokes": [],
+        "strokeWeight": 1,
+        "strokeAlign": "INSIDE",
+        "cornerRadius": 25,
+        "cornerSmoothing": 0,
+        "absoluteBoundingBox": {
+          "x": 548,
+          "y": 480,
+          "width": 618.2503662109375,
+          "height": 638
+        },
+        "absoluteRenderBounds": {
+          "x": 548,
+          "y": 480,
+          "width": 618.2503662109375,
+          "height": 638
+        },
+        "targetAspectRatio": {
+          "x": 1440,
+          "y": 1486
+        },
+        "constraints": {
+          "vertical": "TOP",
+          "horizontal": "LEFT"
+        },
+        "layoutAlign": "INHERIT",
+        "layoutGrow": 0,
+        "layoutPositioning": "ABSOLUTE",
+        "layoutSizingHorizontal": "FIXED",
+        "layoutSizingVertical": "FIXED",
+        "effects": [],
+        "interactions": []
+      },
+      "components": {},
+      "componentSets": {},
+      "schemaVersion": 0,
+      "styles": {}
+    }
+  }
+}

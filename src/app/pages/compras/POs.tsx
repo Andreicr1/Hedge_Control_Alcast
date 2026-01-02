@@ -1,10 +1,30 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Send, Eye, X } from 'lucide-react';
-import * as Dialog from '@radix-ui/react-dialog';
-import { toast } from 'sonner';
-import { useData } from '../../../contexts/DataContextAPI';
-import { purchaseOrdersService } from '../../../services/purchaseOrdersService';
-import { OrderStatus, PricingType } from '../../../types/api';
+import React, { useEffect, useMemo, useState } from "react";
+import { Eye, Plus, Send } from "lucide-react";
+import { toast } from "sonner";
+
+import { useData } from "../../../contexts/DataContextAPI";
+import { purchaseOrdersService } from "../../../services/purchaseOrdersService";
+import { OrderStatus, PricingType } from "../../../types/api";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../../components/ui/dialog";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import { Page, PageHeader, SectionCard } from "../../components/ui/page";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
+import { Textarea } from "../../components/ui/textarea";
 
 type FormState = {
   supplier_id: string;
@@ -42,12 +62,12 @@ const initialForm: FormState = {
   notes: '',
 };
 
-const statusColors: Record<string, string> = {
-  draft: 'bg-gray-100 text-gray-800',
-  pendente_financeiro: 'bg-yellow-100 text-yellow-800',
-  aprovado: 'bg-green-100 text-green-800',
-  rejeitado: 'bg-red-100 text-red-800',
-  active: 'bg-blue-100 text-blue-800',
+const statusBadgeClass: Record<string, string> = {
+  draft: "bg-muted text-muted-foreground border-border",
+  pendente_financeiro: "bg-warning/10 text-warning border-warning/20",
+  aprovado: "bg-success/10 text-success border-success/20",
+  rejeitado: "bg-destructive/10 text-destructive border-destructive/20",
+  active: "bg-primary/10 text-primary border-primary/20",
 };
 
 const statusLabel = (status: string) => {
@@ -123,341 +143,392 @@ export const ComprasPOs = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">Compras</p>
-          <h2 className="text-xl font-semibold">Exposição Passiva (Compras)</h2>
-          <p className="text-muted-foreground text-sm">Ordens de compra em acompanhamento.</p>
-        </div>
-        <Dialog.Root open={createOpen} onOpenChange={setCreateOpen}>
-          <Dialog.Trigger asChild>
-            <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90">
-              <Plus className="w-4 h-4" />
-              Nova PO
-            </button>
-          </Dialog.Trigger>
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 bg-black/50 z-40" />
-            <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card border rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto z-50">
-              <div className="flex justify-between items-center mb-4">
-                <Dialog.Title className="text-lg font-semibold">Cadastrar Purchase Order</Dialog.Title>
-                <Dialog.Close asChild>
-                  <button type="button" className="p-2 hover:bg-accent rounded-md" aria-label="Fechar">
-                    <X className="w-5 h-5" />
-                  </button>
-                </Dialog.Close>
+    <Page>
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <PageHeader
+          eyebrow="Compras"
+          title="Exposição Passiva (Compras)"
+          description="Ordens de compra em acompanhamento."
+          actions={
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="w-4 h-4" />
+                Nova PO
+              </Button>
+            </DialogTrigger>
+          }
+        />
+
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Cadastrar Purchase Order</DialogTitle>
+          </DialogHeader>
+
+          <form className="space-y-4" onSubmit={handleCreate}>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="supplier-select">Fornecedor *</Label>
+                <Select
+                  value={formData.supplier_id}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, supplier_id: value })
+                  }
+                  disabled={loadingSuppliers}
+                >
+                  <SelectTrigger id="supplier-select">
+                    <SelectValue
+                      placeholder={loadingSuppliers ? "Carregando..." : "Selecione"}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {suppliers.map((s) => (
+                      <SelectItem key={s.id} value={String(s.id)}>
+                        {s.name} {s.code ? `(${s.code})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+              <div className="space-y-1">
+                <Label>Produto *</Label>
+                <Input
+                  required
+                  value={formData.product}
+                  onChange={(e) => setFormData({ ...formData, product: e.target.value })}
+                  placeholder="Billets, T-bars..."
+                />
+              </div>
+            </div>
 
-              <form className="space-y-4" onSubmit={handleCreate}>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="supplier-select" className="block mb-1 text-sm font-semibold text-gray-700">Fornecedor *</label>
-                    <select
-                      id="supplier-select"
-                      required
-                      value={formData.supplier_id}
-                      onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      disabled={loadingSuppliers}
-                    >
-                      <option value="">Selecione</option>
-                      {suppliers.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name} {s.code ? `(${s.code})` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Produto *</label>
-                    <input
-                      required
-                      value={formData.product}
-                      onChange={(e) => setFormData({ ...formData, product: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="Billets, T-bars..."
-                    />
-                  </div>
-                </div>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <Label>Quantidade *</Label>
+                <Input
+                  type="number"
+                  required
+                  value={formData.total_quantity_mt}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      total_quantity_mt: Number(e.target.value),
+                    })
+                  }
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Unidade</Label>
+                <Input
+                  value={formData.unit}
+                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                  placeholder="MT"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Preço Unitário</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={formData.unit_price}
+                  onChange={(e) =>
+                    setFormData({ ...formData, unit_price: Number(e.target.value) })
+                  }
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
 
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Quantidade *</label>
-                    <input
-                      type="number"
-                      required
-                      value={formData.total_quantity_mt}
-                      onChange={(e) => setFormData({ ...formData, total_quantity_mt: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="0"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Unidade</label>
-                    <input
-                      value={formData.unit}
-                      onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="MT"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Preço Unitário</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={formData.unit_price}
-                      onChange={(e) => setFormData({ ...formData, unit_price: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="pricing-type">Tipo de Precificação</Label>
+                <Select
+                  value={formData.pricing_type}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, pricing_type: value as PricingType })
+                  }
+                >
+                  <SelectTrigger id="pricing-type">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={PricingType.FIXED}>Fixo</SelectItem>
+                    <SelectItem value={PricingType.TBF}>TBF</SelectItem>
+                    <SelectItem value={PricingType.MONTHLY_AVERAGE}>Média mensal</SelectItem>
+                    <SelectItem value={PricingType.LME_PREMIUM}>LME + Premium</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Período</Label>
+                <Input
+                  value={formData.pricing_period}
+                  onChange={(e) =>
+                    setFormData({ ...formData, pricing_period: e.target.value })
+                  }
+                  placeholder="M+1"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>LME Premium</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={formData.lme_premium}
+                  onChange={(e) =>
+                    setFormData({ ...formData, lme_premium: Number(e.target.value) })
+                  }
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
 
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <label htmlFor="pricing-type" className="block mb-1 text-sm font-semibold text-gray-700">Tipo de Precificação</label>
-                    <select
-                      id="pricing-type"
-                      value={formData.pricing_type}
-                      onChange={(e) => setFormData({ ...formData, pricing_type: e.target.value as PricingType })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                    >
-                      <option value={PricingType.FIXED}>Fixo</option>
-                      <option value={PricingType.TBF}>TBF</option>
-                      <option value={PricingType.MONTHLY_AVERAGE}>Média mensal</option>
-                      <option value={PricingType.LME_PREMIUM}>LME + Premium</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Período</label>
-                    <input
-                      value={formData.pricing_period}
-                      onChange={(e) => setFormData({ ...formData, pricing_period: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="M+1"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">LME Premium</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={formData.lme_premium}
-                      onChange={(e) => setFormData({ ...formData, lme_premium: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <Label>Premium</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={formData.premium}
+                  onChange={(e) =>
+                    setFormData({ ...formData, premium: Number(e.target.value) })
+                  }
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Preço de Referência</Label>
+                <Input
+                  value={formData.reference_price}
+                  onChange={(e) =>
+                    setFormData({ ...formData, reference_price: e.target.value })
+                  }
+                  placeholder="Referência de preço"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Data Limite Fixação</Label>
+                <Input
+                  type="date"
+                  value={formData.fixing_deadline}
+                  onChange={(e) =>
+                    setFormData({ ...formData, fixing_deadline: e.target.value })
+                  }
+                />
+              </div>
+            </div>
 
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Premium</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={formData.premium}
-                      onChange={(e) => setFormData({ ...formData, premium: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Preço de Referência</label>
-                    <input
-                      value={formData.reference_price}
-                      onChange={(e) => setFormData({ ...formData, reference_price: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="Referência de preço"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Data Limite Fixação</label>
-                    <input
-                      type="date"
-                      value={formData.fixing_deadline}
-                      onChange={(e) => setFormData({ ...formData, fixing_deadline: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      title="Data limite para fixação"
-                    />
-                  </div>
-                </div>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <Label>Entrega Prevista</Label>
+                <Input
+                  type="date"
+                  value={formData.expected_delivery_date}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      expected_delivery_date: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Localização</Label>
+                <Input
+                  value={formData.location}
+                  onChange={(e) =>
+                    setFormData({ ...formData, location: e.target.value })
+                  }
+                  placeholder="Local de entrega"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Custo Médio</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={formData.avg_cost}
+                  onChange={(e) =>
+                    setFormData({ ...formData, avg_cost: Number(e.target.value) })
+                  }
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
 
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Entrega Prevista</label>
-                    <input
-                      type="date"
-                      value={formData.expected_delivery_date}
-                      onChange={(e) => setFormData({ ...formData, expected_delivery_date: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      title="Data prevista para entrega"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Localização</label>
-                    <input
-                      value={formData.location}
-                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="Local de entrega"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700">Custo Médio</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={formData.avg_cost}
-                      onChange={(e) => setFormData({ ...formData, avg_cost: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
+            <div className="space-y-1">
+              <Label>Notas</Label>
+              <Textarea
+                value={formData.notes}
+                onChange={(e) =>
+                  setFormData({ ...formData, notes: e.target.value })
+                }
+                rows={3}
+                placeholder="Observações adicionais"
+              />
+            </div>
 
-                <div>
-                  <label className="block mb-1 text-sm font-semibold text-gray-700">Notas</label>
-                  <textarea
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-md bg-white text-sm text-gray-900 placeholder:text-gray-400"
-                    rows={3}
-                    placeholder="Observações adicionais"
-                  />
-                </div>
+            <div className="flex justify-end gap-3">
+              <Button type="submit" disabled={saving}>
+                {saving ? "Salvando..." : "Salvar PO"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-                <div className="flex justify-end gap-3">
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-60"
-                  >
-                    {saving ? 'Salvando...' : 'Salvar PO'}
-                  </button>
-                </div>
-              </form>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
-      </div>
-
-      <div className="space-y-4">
+      <SectionCard>
         {loadingPOs ? (
           <div className="text-muted-foreground">Carregando POs...</div>
         ) : sortedPOs.length === 0 ? (
-          <div className="text-muted-foreground">Nenhuma Purchase Order cadastrada.</div>
+          <div className="text-muted-foreground">
+            Nenhuma Purchase Order cadastrada.
+          </div>
         ) : (
-          sortedPOs.map((po) => (
-            <div key={po.id} className="bg-card border rounded-lg p-6 hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3>
-                    {po.po_number} - {po.supplier?.name}
-                  </h3>
-                  <p className="text-muted-foreground">{po.product || 'Produto não informado'}</p>
-                </div>
-                <span className={`px-3 py-1 rounded-full text-sm ${statusColors[po.status] || 'bg-gray-100 text-gray-800'}`}>
-                  {statusLabel(po.status)}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Quantidade:</span>
-                  <p>{po.total_quantity_mt.toLocaleString()} {po.unit || 'MT'}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Preço Unitário:</span>
-                  <p>{po.unit_price ? `US$ ${po.unit_price.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Total:</span>
-                  <p className="font-medium">{po.unit_price ? `US$ ${(po.unit_price * po.total_quantity_mt).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Entrega:</span>
-                  <p>{po.expected_delivery_date ? new Date(po.expected_delivery_date).toLocaleDateString() : '—'}</p>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4 mt-4 border-t">
-                <button
-                  onClick={() => openDetails(po)}
-                  className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80"
-                >
-                  <Eye className="w-4 h-4" />
-                  Ver Detalhes Completos
-                </button>
-
-                {po.status === 'draft' && (
-                  <button
-                    onClick={() => purchaseOrdersService.update(po.id, { status: OrderStatus.ACTIVE }).then(fetchPurchaseOrders)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                  >
-                    <Send className="w-4 h-4" />
-                    Enviar ao Financeiro
-                  </button>
-                )}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      <Dialog.Root open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/50 z-40" />
-          <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card border rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto z-50">
-            {selectedPO && (
-              <>
-                <div className="flex justify-between items-center mb-6">
+          <div className="space-y-4">
+            {sortedPOs.map((po) => (
+              <div
+                key={po.id}
+                className="bg-card border rounded-lg p-6 hover:shadow-md transition-shadow"
+              >
+                <div className="flex justify-between items-start mb-4">
                   <div>
-                    <Dialog.Title className="text-xl font-medium">Detalhes da Purchase Order</Dialog.Title>
-                    <p className="text-muted-foreground">{selectedPO.po_number}</p>
+                    <h3 className="font-semibold">
+                      {po.po_number} - {po.supplier?.name}
+                    </h3>
+                    <p className="text-muted-foreground">
+                      {po.product || "Produto não informado"}
+                    </p>
                   </div>
-                  <Dialog.Close asChild>
-                    <button type="button" className="p-2 hover:bg-accent rounded-md" aria-label="Fechar">
-                      <X className="w-5 h-5" />
-                    </button>
-                  </Dialog.Close>
+                  <Badge
+                    variant="secondary"
+                    className={statusBadgeClass[po.status] || statusBadgeClass.draft}
+                  >
+                    {statusLabel(po.status)}
+                  </Badge>
                 </div>
 
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3">
-                    <span className="text-muted-foreground">Status:</span>
-                    <span className={`px-3 py-1 rounded-full text-sm ${statusColors[selectedPO.status] || 'bg-gray-100 text-gray-800'}`}>
-                      {statusLabel(selectedPO.status)}
-                    </span>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Quantidade:</span>
+                    <p>
+                      {po.total_quantity_mt.toLocaleString()} {po.unit || "MT"}
+                    </p>
                   </div>
-
-                  <div className="space-y-3 border-t pt-4">
-                    <h3 className="text-muted-foreground">Informações do Fornecedor</h3>
-                    <div className="grid md:grid-cols-2 gap-4 text-sm">
-                      <Info label="Fornecedor" value={selectedPO.supplier?.name} />
-                      <Info label="Produto" value={selectedPO.product} />
-                      <Info label="Quantidade" value={`${selectedPO.total_quantity_mt} ${selectedPO.unit || ''}`} />
-                      <Info label="Preço Unitário" value={selectedPO.unit_price ? `US$ ${selectedPO.unit_price}` : '—'} />
-                      <Info label="Tipo" value={selectedPO.pricing_type} />
-                      <Info label="Período" value={selectedPO.pricing_period} />
-                      <Info label="Premium" value={selectedPO.premium ?? selectedPO.lme_premium} />
-                      <Info label="Ref. preço" value={selectedPO.reference_price} />
-                      <Info label="Fixing até" value={selectedPO.fixing_deadline} />
-                      <Info label="Entrega prevista" value={selectedPO.expected_delivery_date} />
-                      <Info label="Localização" value={selectedPO.location} />
-                      <Info label="Custo médio" value={selectedPO.avg_cost} />
-                      <Info label="Notas" value={selectedPO.notes} />
-                    </div>
+                  <div>
+                    <span className="text-muted-foreground">Preço Unitário:</span>
+                    <p>
+                      {po.unit_price
+                        ? `US$ ${po.unit_price.toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                          })}`
+                        : "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Total:</span>
+                    <p className="font-medium">
+                      {po.unit_price
+                        ? `US$ ${(po.unit_price * po.total_quantity_mt).toLocaleString(
+                            "en-US",
+                            { minimumFractionDigits: 2 },
+                          )}`
+                        : "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Entrega:</span>
+                    <p>
+                      {po.expected_delivery_date
+                        ? new Date(po.expected_delivery_date).toLocaleDateString()
+                        : "—"}
+                    </p>
                   </div>
                 </div>
-              </>
-            )}
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
-    </div>
+
+                <div className="flex gap-3 pt-4 mt-4 border-t">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => openDetails(po)}
+                  >
+                    <Eye className="w-4 h-4" />
+                    Ver detalhes completos
+                  </Button>
+
+                  {po.status === "draft" && (
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        purchaseOrdersService
+                          .update(po.id, { status: OrderStatus.ACTIVE })
+                          .then(fetchPurchaseOrders)
+                      }
+                    >
+                      <Send className="w-4 h-4" />
+                      Enviar ao Financeiro
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
+
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {selectedPO && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Detalhes da Purchase Order</DialogTitle>
+                <p className="text-sm text-muted-foreground">
+                  {selectedPO.po_number}
+                </p>
+              </DialogHeader>
+
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <span className="text-muted-foreground">Status:</span>
+                  <Badge
+                    variant="secondary"
+                    className={
+                      statusBadgeClass[selectedPO.status] || statusBadgeClass.draft
+                    }
+                  >
+                    {statusLabel(selectedPO.status)}
+                  </Badge>
+                </div>
+
+                <div className="space-y-3 border-t pt-4">
+                  <h3 className="text-muted-foreground">Informações do Fornecedor</h3>
+                  <div className="grid md:grid-cols-2 gap-4 text-sm">
+                    <Info label="Fornecedor" value={selectedPO.supplier?.name} />
+                    <Info label="Produto" value={selectedPO.product} />
+                    <Info
+                      label="Quantidade"
+                      value={`${selectedPO.total_quantity_mt} ${selectedPO.unit || ""}`}
+                    />
+                    <Info
+                      label="Preço Unitário"
+                      value={selectedPO.unit_price ? `US$ ${selectedPO.unit_price}` : "—"}
+                    />
+                    <Info label="Tipo" value={selectedPO.pricing_type} />
+                    <Info label="Período" value={selectedPO.pricing_period} />
+                    <Info label="Premium" value={selectedPO.premium ?? selectedPO.lme_premium} />
+                    <Info label="Ref. preço" value={selectedPO.reference_price} />
+                    <Info label="Fixing até" value={selectedPO.fixing_deadline} />
+                    <Info label="Entrega prevista" value={selectedPO.expected_delivery_date} />
+                    <Info label="Localização" value={selectedPO.location} />
+                    <Info label="Custo médio" value={selectedPO.avg_cost} />
+                    <Info label="Notas" value={selectedPO.notes} />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </Page>
   );
 };
 

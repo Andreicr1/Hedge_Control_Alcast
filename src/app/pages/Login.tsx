@@ -1,5 +1,10 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
 import { useAuth } from '../../contexts/AuthContext';
 import { RoleName } from '../../types/api';
 import config from '../../config/env';
@@ -20,12 +25,12 @@ export const Login = () => {
 
     try {
       await login({ username: email, password });
-      
+
       // Buscar role do usuário após login
       const userStr = localStorage.getItem('user');
       if (userStr) {
         const user = JSON.parse(userStr);
-        
+
         // Redirecionar baseado no role
         if (user.role?.name === RoleName.FINANCEIRO) {
           navigate('/financeiro/dashboard');
@@ -50,55 +55,51 @@ export const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
-        <div className="bg-card rounded-lg shadow-xl p-8 border">
+        <Card className="shadow-xl p-8">
           <div className="text-center mb-8">
             <div className="flex justify-center mb-6">
               <img src={logo} alt="Alcast" className="h-16" />
             </div>
-            <h2 className="text-2xl font-semibold text-sky-900 mb-2">Hedge Control</h2>
-            
+            <h2 className="text-2xl font-semibold text-foreground mb-2">
+              Hedge Control
+            </h2>
+
             {config.useMockData && (
               <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-3 py-2 rounded-md text-xs mb-3">
                 <strong>Modo Mock Ativo</strong>
                 <div className="mt-1">Qualquer email/senha funciona</div>
               </div>
             )}
-            
+
             <p className="text-sm text-destructive mt-2">
               Acesso Restrito - Somente Pessoal Autorizado
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block mb-2 text-foreground">
-                Email
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={config.useMockData ? "qualquer@email.com" : "usuario@alcast.com"}
                 required
-                className="w-full px-4 py-3 rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
-            <div>
-              <label htmlFor="password" className="block mb-2 text-foreground">
-                Senha
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="password">Senha</Label>
+              <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={config.useMockData ? "qualquer senha" : "••••••••"}
                 required
-                className="w-full px-4 py-3 rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
@@ -108,17 +109,13 @@ export const Login = () => {
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-primary text-primary-foreground py-3 rounded-md hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <Button type="submit" disabled={loading} className="w-full">
               {loading ? 'Autenticando...' : 'Entrar'}
-            </button>
+            </Button>
 
             <div className="text-center mt-4">
               <p className="text-xs text-muted-foreground">
-                Alcast Hedge Control v1.0 - Backend API Python/FastAPI
+                Alcast Hedge Control v1.0
               </p>
               {config.useMockData && (
                 <p className="text-xs text-yellow-600 mt-1">
@@ -127,7 +124,7 @@ export const Login = () => {
               )}
             </div>
           </form>
-        </div>
+        </Card>
       </div>
     </div>
   );

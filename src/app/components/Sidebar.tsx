@@ -1,124 +1,51 @@
-import React, { useState } from "react";
-import { NavLink } from "react-router-dom";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Package,
-  Users,
-  FileText,
-  DollarSign,
-  LayoutDashboard,
-  ScrollText,
-  Menu,
-  X,
-} from "lucide-react";
-import { useAuth } from "../../contexts/AuthContext";
-import { RoleName } from "../../types/api";
+import { ChevronLeft, ChevronRight, Menu, X } from 'lucide-react';
+import { useState } from 'react';
+import { NavLink } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { RoleName } from '../../types/api';
 
-interface NavItem {
-  label: string;
-  to: string;
-  icon: React.ReactNode;
-}
+import { getEffectiveRole, getNavItemsByRole } from '../nav';
+import { cn } from './ui/utils';
 
 export const Sidebar = () => {
   const { user } = useAuth();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isDesktopHidden, setIsDesktopHidden] = useState(false);
 
   if (!user) return null;
 
-  const userRole = (user.role?.name as string | undefined)?.toLowerCase() as RoleName | undefined;
-  const effectiveRole = userRole === RoleName.ADMIN ? RoleName.FINANCEIRO : userRole;
+  const userRole = (user.role?.name as string | undefined)?.toLowerCase() as
+    | RoleName
+    | undefined;
+  const effectiveRole = getEffectiveRole(userRole);
+  const filteredItems = getNavItemsByRole(effectiveRole);
 
-  const filteredItems: NavItem[] = (() => {
-    if (!effectiveRole) return [];
+  const iconAccentByPath: Record<string, string> = {
+    '/financeiro/dashboard': 'text-purple',
+    '/financeiro/rfqs': 'text-teal',
+    '/financeiro/contratos': 'text-highlight',
+    '/financeiro/contrapartes': 'text-pink',
+    '/financeiro/relatorios': 'text-success',
+    '/compras/pos': 'text-purple',
+    '/compras/fornecedores': 'text-teal',
+    '/vendas/sos': 'text-purple',
+    '/vendas/clientes': 'text-pink',
+    '/estoque': 'text-highlight',
+  };
 
-    const estoqueItem: NavItem = {
-      label: "Estoque",
-      to: "/estoque",
-      icon: <Package className="w-5 h-5" />,
-    };
-
-    if (effectiveRole === RoleName.FINANCEIRO) {
-      return [
-        {
-          label: "Dashboard",
-          to: "/financeiro/dashboard",
-          icon: <LayoutDashboard className="w-5 h-5" />,
-        },
-        {
-          label: "RFQs",
-          to: "/financeiro/rfqs",
-          icon: <FileText className="w-5 h-5" />,
-        },
-        {
-          label: "Contratos",
-          to: "/financeiro/contratos",
-          icon: <ScrollText className="w-5 h-5" />,
-        },
-        {
-          label: "Contrapartes",
-          to: "/financeiro/contrapartes",
-          icon: <Users className="w-5 h-5" />,
-        },
-        {
-          label: "Relatórios",
-          to: "/financeiro/relatorios",
-          icon: <DollarSign className="w-5 h-5" />,
-        },
-        estoqueItem,
-      ];
-    }
-
-    if (effectiveRole === RoleName.COMPRAS) {
-      return [
-        {
-          label: "Purchase Orders",
-          to: "/compras/pos",
-          icon: <FileText className="w-5 h-5" />,
-        },
-        {
-          label: "Fornecedores",
-          to: "/compras/fornecedores",
-          icon: <Users className="w-5 h-5" />,
-        },
-        estoqueItem,
-      ];
-    }
-
-    if (effectiveRole === RoleName.VENDAS) {
-      return [
-        {
-          label: "Sales Orders",
-          to: "/vendas/sos",
-          icon: <FileText className="w-5 h-5" />,
-        },
-        {
-          label: "Clientes",
-          to: "/vendas/clientes",
-          icon: <Users className="w-5 h-5" />,
-        },
-        estoqueItem,
-      ];
-    }
-
-    if (effectiveRole === RoleName.ESTOQUE) {
-      return [estoqueItem];
-    }
-
-    return [];
-  })();
+  const getIconAccentClass = (to: string) =>
+    iconAccentByPath[to] ?? 'text-muted-foreground';
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      <div className="p-4 flex items-center justify-between border-b">
-        {!isCollapsed && (
-          <span className="text-sm text-muted-foreground"></span>
-        )}
+      <div className="p-2.5 border-b border-border">
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="hidden lg:flex p-2 hover:bg-accent rounded-md px-[-9px] py-[8px]"
+          type="button"
+          onClick={() => setIsCollapsed(v => !v)}
+          className="hidden lg:flex w-full items-center justify-center h-9 rounded-lg hover:bg-accent transition-colors"
+          aria-label={isCollapsed ? 'Expandir menu' : 'Recolher menu'}
+          title={isCollapsed ? 'Expandir menu' : 'Recolher menu'}
         >
           {isCollapsed ? (
             <ChevronRight className="w-4 h-4" />
@@ -127,41 +54,89 @@ export const Sidebar = () => {
           )}
         </button>
         <button
+          type="button"
           onClick={() => setIsMobileOpen(false)}
-          className="lg:hidden p-2 hover:bg-accent rounded-md"
+          className="lg:hidden w-full inline-flex h-8 items-center justify-center rounded-lg hover:bg-accent transition-colors"
+          aria-label="Fechar menu"
+          title="Fechar menu"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {filteredItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            onClick={() => setIsMobileOpen(false)}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-                isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-accent text-muted-foreground hover:text-foreground"
-              } ${isCollapsed ? "justify-center" : ""}`
-            }
-          >
-            {item.icon}
-            {!isCollapsed && <span>{item.label}</span>}
-          </NavLink>
-        ))}
+      <nav className="flex-1 p-2.5 space-y-2.5 overflow-y-auto">
+        {filteredItems.map(item => {
+          const Icon = item.icon;
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              onClick={() => setIsMobileOpen(false)}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center rounded-lg transition-colors',
+                  isCollapsed ? 'justify-center' : 'gap-3 px-3 py-2',
+                  !isCollapsed &&
+                    (isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'hover:bg-accent text-muted-foreground hover:text-foreground')
+                )
+              }
+              title={isCollapsed ? item.label : undefined}
+            >
+              {({ isActive }) => (
+                <>
+                  <span
+                    className={cn(
+                      'inline-flex h-9 w-10 items-center justify-center rounded-lg transition-colors',
+                      isCollapsed
+                        ? isActive
+                          ? 'bg-primary text-primary-foreground'
+                          : cn(
+                              getIconAccentClass(item.to),
+                              'hover:bg-accent hover:text-current'
+                            )
+                        : isActive
+                        ? 'text-current'
+                        : getIconAccentClass(item.to)
+                    )}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  {!isCollapsed && (
+                    <span className="truncate">{item.label}</span>
+                  )}
+                </>
+              )}
+            </NavLink>
+          );
+        })}
       </nav>
     </div>
   );
 
   return (
     <>
+      {/* Desktop Open Button (when hidden) */}
+      {isDesktopHidden && (
+        <button
+          type="button"
+          onClick={() => setIsDesktopHidden(false)}
+          className="hidden lg:inline-flex fixed left-4 top-24 z-50 h-10 w-10 items-center justify-center rounded-lg border border-border bg-card shadow-sm"
+          aria-label="Abrir menu"
+          title="Abrir menu"
+        >
+          <Menu className="w-5 h-5 text-primary" />
+        </button>
+      )}
+
       {/* Mobile Menu Button */}
       <button
+        type="button"
         onClick={() => setIsMobileOpen(!isMobileOpen)}
         className="lg:hidden fixed bottom-4 right-4 z-50 bg-primary text-primary-foreground p-4 rounded-full shadow-lg"
+        aria-label={isMobileOpen ? 'Fechar menu' : 'Abrir menu'}
+        title={isMobileOpen ? 'Fechar menu' : 'Abrir menu'}
       >
         <Menu className="w-6 h-6" />
       </button>
@@ -175,19 +150,23 @@ export const Sidebar = () => {
       )}
 
       {/* Desktop Sidebar */}
-      <aside
-        className={`hidden lg:block border-r bg-card transition-all duration-300 ${
-          isCollapsed ? "w-20" : "w-64"
-        }`}
-      >
-        <SidebarContent />
-      </aside>
+      {!isDesktopHidden ? (
+        <aside
+          className={cn(
+            'hidden lg:block sidebar-container transition-all duration-300',
+            isCollapsed ? 'w-14' : 'w-60'
+          )}
+        >
+          <SidebarContent />
+        </aside>
+      ) : null}
 
       {/* Mobile Sidebar */}
       <aside
-        className={`lg:hidden fixed left-0 top-0 bottom-0 z-50 bg-card border-r w-64 transform transition-transform duration-300 ${
-          isMobileOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={cn(
+          'lg:hidden fixed left-0 top-0 bottom-0 z-50 sidebar-container border-r border-border w-64 transform transition-transform duration-300',
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
       >
         <SidebarContent />
       </aside>

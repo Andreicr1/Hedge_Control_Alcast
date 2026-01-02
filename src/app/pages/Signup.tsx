@@ -1,5 +1,17 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 import logo from '../../assets/25708fe7a59949aebee89a264b778b057f612b74.png';
 import { config } from '../../config/env';
 
@@ -65,7 +77,7 @@ export const Signup = () => {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -73,25 +85,25 @@ export const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
-        <div className="bg-card rounded-lg shadow-xl p-8 border">
+        <Card className="shadow-xl p-8">
           <div className="text-center mb-8">
             <div className="flex justify-center mb-6">
               <img src={logo} alt="Alcast" className="h-16" />
             </div>
-            <h2 className="text-2xl font-semibold text-sky-900 mb-2">Cadastro de Usuário</h2>
+            <h2 className="text-2xl font-semibold text-foreground mb-2">
+              Cadastro de Usuário
+            </h2>
             <p className="text-sm text-muted-foreground">
               Alcast Hedge Control
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="name" className="block mb-2 text-sm text-foreground">
-                Nome Completo
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome Completo</Label>
+              <Input
                 id="name"
                 name="name"
                 type="text"
@@ -99,15 +111,12 @@ export const Signup = () => {
                 onChange={handleChange}
                 placeholder="João Silva"
                 required
-                className="w-full px-4 py-3 rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
-            <div>
-              <label htmlFor="email" className="block mb-2 text-sm text-foreground">
-                Email
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
                 id="email"
                 name="email"
                 type="email"
@@ -115,35 +124,36 @@ export const Signup = () => {
                 onChange={handleChange}
                 placeholder="usuario@alcast.com"
                 required
-                className="w-full px-4 py-3 rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
-            <div>
-              <label htmlFor="role" className="block mb-2 text-sm text-foreground">
-                Perfil
-              </label>
-              <select
-                id="role"
-                name="role"
+            <div className="space-y-2">
+              <Label htmlFor="role">Perfil</Label>
+              <Select
                 value={formData.role}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    role: value as typeof prev.role,
+                  }))
+                }
               >
-                <option value="admin">Administrador</option>
-                <option value="financeiro">Financeiro</option>
-                <option value="compras">Compras</option>
-                <option value="vendas">Vendas</option>
-                <option value="estoque">Estoque</option>
-              </select>
+                <SelectTrigger id="role">
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="financeiro">Financeiro</SelectItem>
+                  <SelectItem value="compras">Compras</SelectItem>
+                  <SelectItem value="vendas">Vendas</SelectItem>
+                  <SelectItem value="estoque">Estoque</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div>
-              <label htmlFor="password" className="block mb-2 text-sm text-foreground">
-                Senha
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="password">Senha</Label>
+              <Input
                 id="password"
                 name="password"
                 type="password"
@@ -151,15 +161,12 @@ export const Signup = () => {
                 onChange={handleChange}
                 placeholder="Mínimo 6 caracteres"
                 required
-                className="w-full px-4 py-3 rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
-            <div>
-              <label htmlFor="confirmPassword" className="block mb-2 text-sm text-foreground">
-                Confirmar Senha
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+              <Input
                 id="confirmPassword"
                 name="confirmPassword"
                 type="password"
@@ -167,7 +174,6 @@ export const Signup = () => {
                 onChange={handleChange}
                 placeholder="Digite a senha novamente"
                 required
-                className="w-full px-4 py-3 rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
@@ -178,30 +184,26 @@ export const Signup = () => {
             )}
 
             {success && (
-              <div className="bg-green-50 border border-green-500 text-green-700 px-4 py-3 rounded-md text-sm">
+              <div className="bg-success/10 border border-success/20 text-success px-4 py-3 rounded-md text-sm">
                 {success}
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-primary text-primary-foreground py-3 rounded-md hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
+            <Button type="submit" disabled={loading} className="w-full">
               {loading ? 'Criando usuário...' : 'Criar Usuário'}
-            </button>
+            </Button>
 
             <div className="text-center mt-4">
-              <button
+              <Button
+                variant="link"
                 type="button"
                 onClick={() => navigate('/login')}
-                className="text-sm text-primary hover:underline"
               >
                 Já tem uma conta? Fazer login
-              </button>
+              </Button>
             </div>
           </form>
-        </div>
+        </Card>
       </div>
     </div>
   );

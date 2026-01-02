@@ -1,12 +1,20 @@
-import React, { useState } from 'react';
-import { Eye, X, TrendingUp, TrendingDown, CheckCircle } from 'lucide-react';
-import { useData } from '../../../contexts/DataContextAPI';
-import { Exposure } from '../../../types/api';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Badge } from '../../components/ui/badge';
-import { Button } from '../../components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '../../components/ui/dialog';
-import { Skeleton } from '../../components/ui/skeleton';
+import React, { useState } from "react";
+import { CheckCircle, Eye, TrendingDown, TrendingUp, X } from "lucide-react";
+
+import { useData } from "../../../contexts/DataContextAPI";
+import { Exposure } from "../../../types/api";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent } from "../../components/ui/card";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog";
+import { Page, PageHeader, SectionCard } from "../../components/ui/page";
+import { Skeleton } from "../../components/ui/skeleton";
 
 export const FinanceiroInbox = () => {
   const { exposures, loadingExposures } = useData();
@@ -15,29 +23,14 @@ export const FinanceiroInbox = () => {
   const pendingExposures = exposures;
 
   return (
-    <div className="p-5 space-y-5">
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Inbox Financeiro</p>
-              <h2 className="text-xl font-semibold">Pendências imediatas</h2>
-            </div>
-            <Badge variant="secondary">
-              {pendingExposures.length} itens
-            </Badge>
-          </div>
-        </CardContent>
-      </Card>
+    <Page>
+      <PageHeader
+        eyebrow="Inbox Financeiro"
+        title="Pendências imediatas"
+        meta={<Badge variant="secondary">{pendingExposures.length} itens</Badge>}
+      />
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Fila operacional</CardTitle>
-            <span className="text-xs text-muted-foreground">Exposições aguardando decisão</span>
-          </div>
-        </CardHeader>
-        <CardContent>
+      <SectionCard title="Fila operacional" description="Exposições aguardando decisão">
           {loadingExposures ? (
             <div className="space-y-2">
               {[...Array(3)].map((_, i) => (
@@ -58,7 +51,7 @@ export const FinanceiroInbox = () => {
             </div>
           ) : pendingExposures.length === 0 ? (
             <div className="text-center py-8">
-              <CheckCircle className="w-12 h-12 mx-auto text-green-500 mb-4" />
+              <CheckCircle className="w-12 h-12 mx-auto text-success mb-4" />
               <p className="text-sm text-muted-foreground">
                 Nenhuma tarefa pendente
               </p>
@@ -75,9 +68,9 @@ export const FinanceiroInbox = () => {
                       <div className="space-y-1 flex-1">
                         <div className="flex items-center gap-2">
                           {exp.exposure_type === 'active' ? (
-                            <TrendingUp className="w-4 h-4 text-green-600" />
+                            <TrendingUp className="w-4 h-4 text-success" />
                           ) : (
-                            <TrendingDown className="w-4 h-4 text-red-600" />
+                            <TrendingDown className="w-4 h-4 text-destructive" />
                           )}
                           <p className="text-sm font-medium leading-tight">
                             {exp.exposure_type === 'active' ? 'Exposição ativa' : 'Exposição passiva'} • {exp.product || 'N/D'}
@@ -110,8 +103,7 @@ export const FinanceiroInbox = () => {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+      </SectionCard>
 
       <Dialog open={!!selectedExposure} onOpenChange={() => setSelectedExposure(null)}>
         <DialogContent className="max-w-2xl">
@@ -157,7 +149,7 @@ export const FinanceiroInbox = () => {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 };
 
