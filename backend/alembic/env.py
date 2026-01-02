@@ -1,3 +1,4 @@
+import os
 import sys
 from logging.config import fileConfig
 
@@ -37,7 +38,12 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
-    connectable = create_engine(settings.database_url, future=True)
+    connect_args = {}
+    # Evita travas longas quando o Postgres está indisponível.
+    if str(settings.database_url).startswith("postgresql"):
+        connect_args = {"connect_timeout": int(os.getenv("DB_CONNECT_TIMEOUT_SECONDS", "10"))}
+
+    connectable = create_engine(settings.database_url, future=True, connect_args=connect_args)
 
     with connectable.connect() as connection:
         context.configure(

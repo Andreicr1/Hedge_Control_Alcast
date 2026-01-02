@@ -28,3 +28,13 @@ coverage
 .parcel-cache
 .turbo
 .eslintcache
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.python-version
+backend/.venv/
+backend/.venv311/
