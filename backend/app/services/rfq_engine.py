@@ -576,6 +576,80 @@ def generate_rfq_text(
     return text
 
 
+def compute_trade_ppt_dates(
+    trade: RfqTrade,
+    cal: Optional[HolidayCalendar] = None,
+) -> dict:
+    """
+    Compute PPT (settlement) dates for a trade using the exact same pairing/override
+    rules used by generate_rfq_text().
+
+    Returns:
+      {
+        "leg1_ppt": date | None,
+        "leg2_ppt": date | None,
+        "trade_ppt": date | None,   # max of available leg PPTs
+      }
+    """
+    cal = cal or HolidayCalendar()
+    errs = validate_trade(trade)
+    if errs:
+        raise ValueError(errs[0].message)
+
+    l1 = trade.leg1
+    l2 = trade.leg2
+
+    def _compute_pair_overrides(leg_a: Leg, leg_b: Optional[Leg]) -> Tuple[Leg, Optional[Leg]]:
+        if leg_b is None:
+            return leg_a, None
+
+        a = leg_a
+        b = leg_b
+
+        ppt_a = compute_ppt_for_leg(a, cal)
+        ppt_b = compute_ppt_for_leg(b, cal)
+
+        if a.price_type == PriceType.AVG_INTER and b.price_type in (PriceType.FIX, PriceType.C2R) and a.end_date:
+            b_fix = a.end_date
+            b_ppt = ppt_a if trade.sync_ppt else ppt_b
+            b = Leg(**{**b.__dict__, "fixing_date": b_fix, "ppt": b_ppt})
+            ppt_b = b_ppt
+        if b.price_type == PriceType.AVG_INTER and a.price_type in (PriceType.FIX, PriceType.C2R) and b.end_date:
+            a_fix = b.end_date
+            a_ppt = ppt_b if trade.sync_ppt else ppt_a
+            a = Leg(**{**a.__dict__, "fixing_date": a_fix, "ppt": a_ppt})
+            ppt_a = a_ppt
+
+        if a.price_type == PriceType.FIX and b.price_type == PriceType.AVG:
+            a = Leg(**{**a.__dict__, "ppt": ppt_b, "fixing_date": None})
+            ppt_a = ppt_b
+        if b.price_type == PriceType.FIX and a.price_type == PriceType.AVG:
+            b = Leg(**{**b.__dict__, "ppt": ppt_a, "fixing_date": None})
+            ppt_b = ppt_a
+
+        if a.price_type == PriceType.FIX and b.price_type == PriceType.C2R:
+            a = Leg(**{**a.__dict__, "ppt": ppt_b, "fixing_date": None})
+            ppt_a = ppt_b
+        if b.price_type == PriceType.FIX and a.price_type == PriceType.C2R:
+            b = Leg(**{**b.__dict__, "ppt": ppt_a, "fixing_date": None})
+            ppt_b = ppt_a
+
+        if trade.sync_ppt and a.price_type == PriceType.AVG_INTER:
+            b = Leg(**{**b.__dict__, "ppt": ppt_a})
+        if trade.sync_ppt and b.price_type == PriceType.AVG_INTER:
+            a = Leg(**{**a.__dict__, "ppt": compute_ppt_for_leg(b, cal)})
+
+        return a, b
+
+    l1_adj, l2_adj = _compute_pair_overrides(l1, l2)
+    ppt1 = compute_ppt_for_leg(l1_adj, cal)
+    ppt2 = compute_ppt_for_leg(l2_adj, cal) if l2_adj else None
+
+    pts = [d for d in (ppt1, ppt2) if d is not None]
+    trade_ppt = max(pts) if pts else None
+    return {"leg1_ppt": ppt1, "leg2_ppt": ppt2, "trade_ppt": trade_ppt}
+
+
 if __name__ == "__main__":
     cal = HolidayCalendar()
     t = RfqTrade(

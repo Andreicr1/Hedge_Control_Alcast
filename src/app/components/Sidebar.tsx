@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { RoleName } from '../../types/api';
+import logo from '../../assets/25708fe7a59949aebee89a264b778b057f612b74.png';
 
 import { getEffectiveRole, getNavItemsByRole } from '../nav';
 import { cn } from './ui/utils';
@@ -40,10 +41,22 @@ export const Sidebar = () => {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       <div className="p-2.5 border-b border-border">
+        <div className="flex items-center justify-start">
+          <img
+            src={logo}
+            alt="Alcast"
+            className={cn("h-[41px] w-[36px] object-contain", isCollapsed ? "" : "mr-2")}
+          />
+          {!isCollapsed && (
+            <span className="text-sm font-medium text-foreground truncate">
+              Alcast
+            </span>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => setIsCollapsed(v => !v)}
-          className="hidden lg:flex w-full items-center justify-center h-9 rounded-lg hover:bg-accent transition-colors"
+          className="mt-2 hidden lg:flex w-full items-center justify-center h-9 rounded-[var(--radius)] hover:bg-accent transition-colors"
           aria-label={isCollapsed ? 'Expandir menu' : 'Recolher menu'}
           title={isCollapsed ? 'Expandir menu' : 'Recolher menu'}
         >
@@ -56,7 +69,7 @@ export const Sidebar = () => {
         <button
           type="button"
           onClick={() => setIsMobileOpen(false)}
-          className="lg:hidden w-full inline-flex h-8 items-center justify-center rounded-lg hover:bg-accent transition-colors"
+          className="lg:hidden mt-2 w-full inline-flex h-8 items-center justify-center rounded-[var(--radius)] hover:bg-accent transition-colors"
           aria-label="Fechar menu"
           title="Fechar menu"
         >
@@ -64,7 +77,7 @@ export const Sidebar = () => {
         </button>
       </div>
 
-      <nav className="flex-1 p-2.5 space-y-2.5 overflow-y-auto">
+      <nav className="flex-1 px-2 py-2 space-y-1 overflow-y-auto">
         {filteredItems.map(item => {
           const Icon = item.icon;
           return (
@@ -74,12 +87,11 @@ export const Sidebar = () => {
               onClick={() => setIsMobileOpen(false)}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center rounded-lg transition-colors',
-                  isCollapsed ? 'justify-center' : 'gap-3 px-3 py-2',
-                  !isCollapsed &&
-                    (isActive
+                  'flex items-center h-9 rounded-[var(--radius)] transition-colors',
+                  isCollapsed ? 'justify-center px-3' : 'gap-3 px-3',
+                  isActive
                       ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-accent text-muted-foreground hover:text-foreground')
+                    : 'hover:bg-accent text-muted-foreground hover:text-foreground'
                 )
               }
               title={isCollapsed ? item.label : undefined}
@@ -88,20 +100,11 @@ export const Sidebar = () => {
                 <>
                   <span
                     className={cn(
-                      'inline-flex h-9 w-10 items-center justify-center rounded-lg transition-colors',
-                      isCollapsed
-                        ? isActive
-                          ? 'bg-primary text-primary-foreground'
-                          : cn(
-                              getIconAccentClass(item.to),
-                              'hover:bg-accent hover:text-current'
-                            )
-                        : isActive
-                        ? 'text-current'
-                        : getIconAccentClass(item.to)
+                      'inline-flex items-center justify-center transition-colors',
+                      isActive ? 'text-primary-foreground' : getIconAccentClass(item.to)
                     )}
                   >
-                    <Icon className="h-5 w-5" />
+                    <Icon className="h-4 w-4" />
                   </span>
                   {!isCollapsed && (
                     <span className="truncate">{item.label}</span>

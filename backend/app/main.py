@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.api.router import api_router
+from app.services.scheduler import runner as daily_runner
 
 api_prefix = settings.api_prefix if settings.api_prefix.startswith("/") else f"/{settings.api_prefix}" if settings.api_prefix else ""
 
@@ -26,6 +27,28 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix=api_prefix)
+
+
+@app.on_event("startup")
+def _startup_scheduler():
+    # Avoid running background threads in test context by default.
+    if (settings.environment or "").lower() == "test":
+        return
+    # Allow ops to disable scheduler via env var if needed.
+    if str(getattr(settings, "scheduler_enabled", "true")).lower() in {"0", "false", "no"}:
+        return
+    daily_runner.start()
+    logger.info("scheduler_started", extra={"daily_utc_hour": daily_runner.hour_utc})
+
+
+@app.on_event("shutdown")
+def _shutdown_scheduler():
+    try:
+        daily_runner.stop()
+        logger.info("scheduler_stopped")
+    except Exception:
+        # don't block shutdown
+        pass
 
 
 @app.get("/", tags=["meta"])

@@ -22,7 +22,7 @@ export function TopNav({ className }: TopNavProps) {
     <div className={cn("w-full overflow-x-auto", className)}>
       <nav
         aria-label="Navegação principal"
-        className="inline-flex min-w-max items-center gap-1 rounded-lg border bg-card p-1"
+        className="inline-flex min-w-max items-center justify-center gap-1 rounded-[var(--radius)] border border-border bg-card p-1"
       >
         {items.map((item) => (
           <NavLink
@@ -30,10 +30,10 @@ export function TopNav({ className }: TopNavProps) {
             to={item.to}
             className={({ isActive }) =>
               cn(
-                "rounded-sm px-3 py-1.5 text-sm leading-[17px] transition-colors whitespace-nowrap",
+                "rounded-sm px-3 py-1.5 text-[14px] leading-[17px] font-normal transition-colors whitespace-nowrap",
                 isActive
-                  ? "bg-background text-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-background",
+                  ? "bg-accent text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent",
               )
             }
           >

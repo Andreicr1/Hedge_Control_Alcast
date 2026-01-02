@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Any
 
 from pydantic import BaseModel, Field, validator
 
@@ -48,6 +48,8 @@ class RfqBase(BaseModel):
 class RfqCreate(RfqBase):
     counterparty_quotes: Optional[List[RfqQuoteCreate]] = None
     invitations: Optional[List["RfqInvitationCreate"]] = None
+    # Option A: persist the same payload used in /rfqs/preview so Contracts can store settlement_date (PPT).
+    trade_specs: Optional[List[dict[str, Any]]] = None
 
 
 class RfqUpdate(BaseModel):

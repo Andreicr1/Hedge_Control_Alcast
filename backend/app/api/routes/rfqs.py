@@ -21,6 +21,7 @@ from app.schemas import (
 from app.api.deps import require_roles
 from app.models.domain import RfqStatus
 from app.services.rfq_message_builder import build_rfq_message
+from app.services import rfq_engine
 from app import models as m
 
 router = APIRouter(prefix="/rfqs", tags=["rfqs"])
@@ -103,6 +104,7 @@ def create_rfq(
         period=payload.period,
         status=payload.status,
         message_text=payload.message_text,
+        trade_specs=payload.trade_specs,
     )
     if so.deal_id:
         rfq.deal_id = so.deal_id
@@ -354,6 +356,57 @@ def award_quote(
     if not deal_id:
         raise HTTPException(status_code=400, detail="RFQ não possui deal associado para criar contratos")
     for trade in trades:
+        settlement_date = None
+        settlement_meta = None
+        try:
+            idx = int(trade.get("trade_index") or 0)
+            if getattr(rfq, "trade_specs", None) and idx < len(rfq.trade_specs):
+                spec = rfq.trade_specs[idx]
+                holidays = (spec or {}).get("holidays") or None
+                cal = rfq_engine.HolidayCalendar(holidays)
+
+                def _leg_from_spec(leg: dict) -> rfq_engine.Leg:
+                    order = None
+                    if leg.get("order"):
+                        order = rfq_engine.OrderInstruction(
+                            order_type=leg["order"]["order_type"],
+                            validity=leg["order"].get("validity"),
+                            limit_price=leg["order"].get("limit_price"),
+                        )
+                    return rfq_engine.Leg(
+                        side=leg["side"],
+                        price_type=leg["price_type"],
+                        quantity_mt=float(leg.get("quantity_mt") or rfq.quantity_mt),
+                        month_name=leg.get("month_name"),
+                        year=leg.get("year"),
+                        start_date=leg.get("start_date"),
+                        end_date=leg.get("end_date"),
+                        fixing_date=leg.get("fixing_date"),
+                        ppt=leg.get("ppt"),
+                        order=order,
+                    )
+
+                t = rfq_engine.RfqTrade(
+                    trade_type=spec["trade_type"],
+                    leg1=_leg_from_spec(spec["leg1"]),
+                    leg2=_leg_from_spec(spec["leg2"]) if spec.get("leg2") else None,
+                    sync_ppt=bool(spec.get("sync_ppt") or False),
+                )
+                ppt = rfq_engine.compute_trade_ppt_dates(t, cal=cal)
+                settlement_date = ppt.get("trade_ppt")
+                settlement_meta = {
+                    "source": "rfq_engine",
+                    "leg1_ppt": ppt.get("leg1_ppt").isoformat() if ppt.get("leg1_ppt") else None,
+                    "leg2_ppt": ppt.get("leg2_ppt").isoformat() if ppt.get("leg2_ppt") else None,
+                    "trade_ppt": ppt.get("trade_ppt").isoformat() if ppt.get("trade_ppt") else None,
+                }
+        except Exception:
+            # If trade_specs are missing/malformed, keep settlement_date null; Contract still created.
+            settlement_date = None
+            settlement_meta = None
+
+        if settlement_date:
+            trade["settlement_date"] = settlement_date.isoformat()
         contract = models.Contract(
             deal_id=deal_id,
             rfq_id=rfq.id,
@@ -362,6 +415,8 @@ def award_quote(
             trade_index=trade.get("trade_index"),
             quote_group_id=trade.get("quote_group_id"),
             trade_snapshot=trade,
+            settlement_date=settlement_date,
+            settlement_meta=settlement_meta,
             created_by=current_user.id,
         )
         db.add(contract)

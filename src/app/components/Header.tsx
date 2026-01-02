@@ -1,10 +1,9 @@
 import React from "react";
-import { Bell, LogOut } from "lucide-react";
+import { Bell, ChevronDown, CircleHelp, LogOut, Newspaper, UserCircle2 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContextAPI';
 import { OrderStatus } from '../../types/api';
-import logo from '../../assets/25708fe7a59949aebee89a264b778b057f612b74.png';
 import { getNavLabelByPath, getSectionLabelByPath } from "../nav";
 import { TopNav } from "./TopNav";
 import {
@@ -33,77 +32,87 @@ export const Header = () => {
   const pageLabel = getNavLabelByPath(location.pathname, user?.role?.name);
 
   return (
-    <header className="border-b border-border bg-card/85 backdrop-blur supports-[backdrop-filter]:bg-card/70 sticky top-0 z-10">
-      <div className="flex items-center justify-between px-6 py-4 gap-4">
-        <div className="flex items-center gap-3">
-          <img src={logo} alt="Alcast" className="h-8" />
-          <span className="text-lg font-semibold tracking-tight">Hedge Control</span>
-          {isUsingMock && (
-            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
-              Modo Mock
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          {user && (
-            <>
-              <div className="hidden md:flex flex-col items-end">
-                <span className="text-sm text-muted-foreground">{user.name}</span>
-                <span className="text-xs text-muted-foreground capitalize">{user.role?.name || 'N/A'}</span>
-              </div>
-
-              {pendencias > 0 && (
-                <Button variant="ghost" size="icon" className="relative" aria-label="Pendências">
-                  <Bell className="w-5 h-5 text-muted-foreground" />
-                  <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[11px] rounded-full w-5 h-5 flex items-center justify-center">
-                    {pendencias}
-                  </span>
-                </Button>
-              )}
-
-              <Button onClick={logout} variant="secondary" className="gap-2">
-                <LogOut className="w-4 h-4" />
-                <span className="hidden md:inline">Sair</span>
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {(sectionLabel || pageLabel) && (
-        <div className="border-t border-border/70">
-          <div className={cn("flex items-center gap-4 px-6 py-3")}>
+    <header className="bg-card sticky top-0 z-10">
+      {/* Figma HEADER: breadcrumb + ações */}
+      <div className="border-b border-border">
+        <div className="flex items-center justify-between px-6 py-3">
+          <div className="min-w-0">
             <Breadcrumb>
               <BreadcrumbList>
                 {sectionLabel && (
                   <>
                     <BreadcrumbItem>
                       <BreadcrumbLink asChild>
-                        <span>{sectionLabel}</span>
+                        <span className="text-[14px] font-normal text-foreground">
+                          {sectionLabel}
+                        </span>
                       </BreadcrumbLink>
                     </BreadcrumbItem>
-                    <BreadcrumbSeparator>/</BreadcrumbSeparator>
+                    <BreadcrumbSeparator className="text-muted-foreground">/</BreadcrumbSeparator>
                   </>
                 )}
-                {pageLabel ? (
                   <BreadcrumbItem>
-                    <BreadcrumbPage>{pageLabel}</BreadcrumbPage>
+                  <BreadcrumbPage className="text-[14px] font-normal text-foreground">
+                    {pageLabel ?? "—"}
+                  </BreadcrumbPage>
                   </BreadcrumbItem>
-                ) : (
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>—</BreadcrumbPage>
-                  </BreadcrumbItem>
-                )}
               </BreadcrumbList>
             </Breadcrumb>
+          </div>
 
-            <div className="flex-1">
-              <TopNav className="max-w-full" />
+          <div className="flex items-center gap-3">
+            {isUsingMock && (
+              <span className="text-xs bg-warning/20 text-warning px-2 py-1 rounded-full">
+                Modo Mock
+              </span>
+            )}
+
+            <Button variant="ghost" size="icon" aria-label="News">
+              <Newspaper className="h-4 w-4 text-muted-foreground" />
+            </Button>
+
+            <Button variant="ghost" size="icon" className="relative" aria-label="Notificações">
+              <Bell className="h-4 w-4 text-muted-foreground" />
+              {/* No Figma há um indicador verde; mantemos contador quando existir */}
+              {pendencias > 0 ? (
+                <span className="absolute -top-1 -right-1 bg-success text-white text-[11px] rounded-full w-5 h-5 flex items-center justify-center">
+                  {pendencias}
+                </span>
+              ) : (
+                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-success" />
+              )}
+            </Button>
+
+            <Button variant="ghost" size="icon" aria-label="Ajuda">
+              <CircleHelp className="h-4 w-4 text-muted-foreground" />
+            </Button>
+
+            <div className="hidden md:flex items-center gap-2">
+              <UserCircle2 className="h-4 w-4 text-muted-foreground" />
+              <div className="flex flex-col items-start leading-none">
+                <span className="text-[10px] text-foreground truncate max-w-[140px]">
+                  {user?.name ?? "—"}
+                </span>
+                <span className="text-[9px] text-muted-foreground truncate max-w-[140px]">
+                  {user?.email ?? (user?.role?.name ?? "—")}
+                </span>
+              </div>
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </div>
+
+            <div className="h-5 w-px bg-border hidden md:block" />
+
+            <Button onClick={logout} variant="ghost" size="icon" aria-label="Sair">
+              <LogOut className="h-4 w-4 text-muted-foreground" />
+            </Button>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* Figma MENUBAR */}
+      <div className={cn("px-6 py-3")}>
+        <TopNav className="max-w-full" />
+      </div>
     </header>
   );
 };

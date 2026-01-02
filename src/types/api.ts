@@ -373,6 +373,33 @@ export interface MarketPriceCreate {
   fx?: boolean;
 }
 
+// Dashboard: Alumínio (preço de mercado) e vencimentos (settlement)
+export type AluminumQuote = {
+  bid: number;
+  ask: number;
+  currency: "USD";
+  unit: "ton";
+  as_of: string; // ISO datetime
+  source?: string;
+};
+
+export type AluminumHistoryPoint = {
+  ts: string; // ISO datetime
+  bid?: number;
+  ask?: number;
+  mid: number;
+};
+
+export type SettlementItem = {
+  contract_id?: string;
+  hedge_id?: number;
+  counterparty_id?: number;
+  counterparty_name: string;
+  settlement_date: string; // ISO date or datetime
+  mtm_today_usd?: number | null;
+  settlement_value_usd?: number | null;
+};
+
 export interface MTMSnapshot {
   id: number;
   object_type: MarketObjectType;
@@ -565,6 +592,7 @@ export interface RfqCreate {
   side?: RfqSide;
   status?: RfqStatus;
   message_text?: string;
+  trade_specs?: RfqPreviewRequest[];
   counterparty_quotes?: RfqQuoteCreate[];
   invitations?: RfqInvitation[];
 }

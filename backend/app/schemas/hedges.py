@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
 
 from pydantic import BaseModel
@@ -15,6 +15,7 @@ class HedgeBase(BaseModel):
     current_market_price: Optional[float] = None
     mtm_value: Optional[float] = None
     period: str
+    maturity_date: Optional[date] = None
     status: HedgeStatus = HedgeStatus.active
 
 
@@ -31,6 +32,7 @@ class HedgeUpdate(BaseModel):
     current_market_price: Optional[float] = None
     mtm_value: Optional[float] = None
     period: Optional[str] = None
+    maturity_date: Optional[date] = None
     status: Optional[HedgeStatus] = None
 
 

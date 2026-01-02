@@ -2,8 +2,8 @@ from datetime import datetime, date
 import uuid
 from enum import Enum as PyEnum
 
-from sqlalchemy import Boolean, Date, DateTime, Enum, Float, ForeignKey, Integer, JSON, String, Text, func
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import Boolean, Date, DateTime, Enum, Float, ForeignKey, Integer, JSON, String, Text, func, and_
+from sqlalchemy.orm import Mapped, mapped_column, relationship, foreign
 
 from app.database import Base
 
@@ -193,7 +193,15 @@ class Supplier(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    documents = relationship("KycDocument", back_populates="supplier")
+    documents = relationship(
+        "KycDocument",
+        back_populates="supplier",
+        primaryjoin=lambda: and_(
+            foreign(KycDocument.owner_id) == Supplier.id,
+            KycDocument.owner_type == DocumentOwnerType.supplier,
+        ),
+        viewonly=True,
+    )
     purchase_orders = relationship("PurchaseOrder", back_populates="supplier")
 
 
@@ -232,7 +240,15 @@ class Customer(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    documents = relationship("KycDocument", back_populates="customer")
+    documents = relationship(
+        "KycDocument",
+        back_populates="customer",
+        primaryjoin=lambda: and_(
+            foreign(KycDocument.owner_id) == Customer.id,
+            KycDocument.owner_type == DocumentOwnerType.customer,
+        ),
+        viewonly=True,
+    )
     sales_orders = relationship("SalesOrder", back_populates="customer")
 
 
@@ -273,7 +289,15 @@ class PurchaseOrder(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     supplier = relationship("Supplier", back_populates="purchase_orders")
-    exposures = relationship("Exposure", back_populates="purchase_order")
+    exposures = relationship(
+        "Exposure",
+        back_populates="purchase_order",
+        primaryjoin=lambda: and_(
+            foreign(Exposure.source_id) == PurchaseOrder.id,
+            Exposure.source_type == MarketObjectType.po,
+        ),
+        viewonly=True,
+    )
 
 
 class SalesOrder(Base):
@@ -302,7 +326,15 @@ class SalesOrder(Base):
     customer = relationship("Customer", back_populates="sales_orders")
     rfqs = relationship("Rfq", back_populates="sales_order")
     hedges = relationship("Hedge", back_populates="sales_order")
-    exposures = relationship("Exposure", back_populates="sales_order")
+    exposures = relationship(
+        "Exposure",
+        back_populates="sales_order",
+        primaryjoin=lambda: and_(
+            foreign(Exposure.source_id) == SalesOrder.id,
+            Exposure.source_type == MarketObjectType.so,
+        ),
+        viewonly=True,
+    )
 
 
 class Counterparty(Base):
@@ -378,10 +410,16 @@ class Rfq(Base):
     winner_rank: Mapped[int | None] = mapped_column(Integer)
     hedge_id: Mapped[int | None] = mapped_column(ForeignKey("hedges.id"))
     hedge_reference: Mapped[str | None] = mapped_column(String(128))
+    trade_specs: Mapped[list[dict] | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     sales_order = relationship("SalesOrder", back_populates="rfqs")
-    counterparty_quotes = relationship("RfqQuote", back_populates="rfq", cascade="all, delete-orphan")
+    counterparty_quotes = relationship(
+        "RfqQuote",
+        back_populates="rfq",
+        foreign_keys="RfqQuote.rfq_id",
+        cascade="all, delete-orphan",
+    )
     invitations = relationship("RfqInvitation", back_populates="rfq", cascade="all, delete-orphan")
     winner_quote = relationship("RfqQuote", foreign_keys=[winner_quote_id], viewonly=True)
     decided_by_user = relationship("User", foreign_keys=[decided_by], viewonly=True)
@@ -400,6 +438,8 @@ class Contract(Base):
     trade_index: Mapped[int | None] = mapped_column(Integer)
     quote_group_id: Mapped[str | None] = mapped_column(String(64))
     trade_snapshot: Mapped[dict] = mapped_column(JSON, nullable=False)
+    settlement_date: Mapped[Date | None] = mapped_column(Date)
+    settlement_meta: Mapped[dict | None] = mapped_column(JSON)
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -426,7 +466,7 @@ class RfqQuote(Base):
     leg_side: Mapped[str | None] = mapped_column(String(8))  # buy | sell
     quoted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    rfq = relationship("Rfq", back_populates="counterparty_quotes")
+    rfq = relationship("Rfq", back_populates="counterparty_quotes", foreign_keys=[rfq_id])
     counterparty = relationship("Counterparty", back_populates="quotes")
 
 
@@ -484,13 +524,19 @@ class KycDocument(Base):
     customer = relationship(
         "Customer",
         back_populates="documents",
-        primaryjoin="and_(KycDocument.owner_id==Customer.id, KycDocument.owner_type=='customer')",
+        primaryjoin=lambda: and_(
+            foreign(KycDocument.owner_id) == Customer.id,
+            KycDocument.owner_type == DocumentOwnerType.customer,
+        ),
         viewonly=True,
     )
     supplier = relationship(
         "Supplier",
         back_populates="documents",
-        primaryjoin="and_(KycDocument.owner_id==Supplier.id, KycDocument.owner_type=='supplier')",
+        primaryjoin=lambda: and_(
+            foreign(KycDocument.owner_id) == Supplier.id,
+            KycDocument.owner_type == DocumentOwnerType.supplier,
+        ),
         viewonly=True,
     )
 
@@ -554,13 +600,19 @@ class Exposure(Base):
     purchase_order = relationship(
         "PurchaseOrder",
         back_populates="exposures",
-        primaryjoin="and_(Exposure.source_id==PurchaseOrder.id, Exposure.source_type=='po')",
+        primaryjoin=lambda: and_(
+            foreign(Exposure.source_id) == PurchaseOrder.id,
+            Exposure.source_type == MarketObjectType.po,
+        ),
         viewonly=True,
     )
     sales_order = relationship(
         "SalesOrder",
         back_populates="exposures",
-        primaryjoin="and_(Exposure.source_id==SalesOrder.id, Exposure.source_type=='so')",
+        primaryjoin=lambda: and_(
+            foreign(Exposure.source_id) == SalesOrder.id,
+            Exposure.source_type == MarketObjectType.so,
+        ),
         viewonly=True,
     )
     tasks = relationship("HedgeTask", back_populates="exposure", cascade="all, delete-orphan")

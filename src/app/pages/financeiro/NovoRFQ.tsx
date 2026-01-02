@@ -356,6 +356,24 @@ export const NovoRFQ = () => {
     setSavingRfq(true);
     try {
       const invitePayload = buildInvitations();
+      // Persist trade specs (same payload used in /rfqs/preview) so backend can compute Contract settlement_date (PPT).
+      const trade_specs: RfqPreviewRequest[] = trades.map((trade, i) => {
+        const leg1Payload = buildLegPayload(trade, trade.leg1);
+        let leg2Payload: RfqPreviewLeg | undefined = undefined;
+        if (trade.tradeType === 'Swap') {
+          leg2Payload = buildLegPayload(trade, trade.leg2);
+        } else if (trade.tradeType === 'Forward' && trade.leg2.priceType) {
+          leg2Payload = buildLegPayload(trade, trade.leg2);
+        }
+        return {
+          trade_type: trade.tradeType,
+          leg1: leg1Payload,
+          leg2: leg2Payload,
+          sync_ppt: trade.syncPpt,
+          company_header: i === 0 ? company : undefined,
+          company_label_for_payoff: company,
+        };
+      });
       const created = await rfqsService.create({
         rfq_number: rfqNumber,
         so_id: Number(selectedSO),
@@ -364,6 +382,7 @@ export const NovoRFQ = () => {
         side: rfqSide,
         status: RfqStatus.PENDING,
         message_text: rfqMessage || undefined,
+        trade_specs,
         invitations: invitePayload.map((inv) => ({
           counterparty_id: inv.counterparty_id,
           counterparty_name: inv.counterparty_name,

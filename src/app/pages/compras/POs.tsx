@@ -1,30 +1,54 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Eye, Plus, Send } from "lucide-react";
-import { toast } from "sonner";
+import {
+  CalendarDays,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Eye,
+  Send,
+} from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
-import { useData } from "../../../contexts/DataContextAPI";
-import { purchaseOrdersService } from "../../../services/purchaseOrdersService";
-import { OrderStatus, PricingType } from "../../../types/api";
-import { Badge } from "../../components/ui/badge";
-import { Button } from "../../components/ui/button";
+import { useData } from '../../../contexts/DataContextAPI';
+import { purchaseOrdersService } from '../../../services/purchaseOrdersService';
+import { OrderStatus, PricingType } from '../../../types/api';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Checkbox } from '../../components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "../../components/ui/dialog";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import { Page, PageHeader, SectionCard } from "../../components/ui/page";
+} from '../../components/ui/dialog';
+import {
+  FigmaButton,
+  FigmaSurface,
+  FigmaTabs,
+} from '../../components/ui/figma';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Page } from '../../components/ui/page';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../components/ui/select";
-import { Textarea } from "../../components/ui/textarea";
+} from '../../components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table';
+import { Textarea } from '../../components/ui/textarea';
+import { cn } from '../../components/ui/utils';
 
 type FormState = {
   supplier_id: string;
@@ -63,11 +87,11 @@ const initialForm: FormState = {
 };
 
 const statusBadgeClass: Record<string, string> = {
-  draft: "bg-muted text-muted-foreground border-border",
-  pendente_financeiro: "bg-warning/10 text-warning border-warning/20",
-  aprovado: "bg-success/10 text-success border-success/20",
-  rejeitado: "bg-destructive/10 text-destructive border-destructive/20",
-  active: "bg-primary/10 text-primary border-primary/20",
+  draft: 'bg-muted text-muted-foreground border-border',
+  pendente_financeiro: 'bg-warning/10 text-warning border-warning/20',
+  aprovado: 'bg-success/10 text-success border-success/20',
+  rejeitado: 'bg-destructive/10 text-destructive border-destructive/20',
+  active: 'bg-primary/10 text-primary border-primary/20',
 };
 
 const statusLabel = (status: string) => {
@@ -88,39 +112,96 @@ const statusLabel = (status: string) => {
 };
 
 export const ComprasPOs = () => {
-  const { purchaseOrders, suppliers, fetchPurchaseOrders, loadingPOs, loadingSuppliers } = useData();
+  const {
+    purchaseOrders,
+    suppliers,
+    fetchPurchaseOrders,
+    loadingPOs,
+    loadingSuppliers,
+  } = useData();
   const [selectedPO, setSelectedPO] = useState<any | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [formData, setFormData] = useState<FormState>(initialForm);
   const [saving, setSaving] = useState(false);
+  const [filterConcluded, setFilterConcluded] = useState(false);
+  const [filterPending, setFilterPending] = useState(false);
+  const [activeTab, setActiveTab] = useState<'main' | 'related'>('main');
+  const [pageSize, setPageSize] = useState(10);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     fetchPurchaseOrders();
   }, []);
 
   const sortedPOs = useMemo(
-    () => [...purchaseOrders].sort((a, b) => b.created_at.localeCompare(a.created_at)),
+    () =>
+      [...purchaseOrders].sort((a, b) =>
+        b.created_at.localeCompare(a.created_at)
+      ),
     [purchaseOrders]
   );
 
+  const filteredPOs = useMemo(() => {
+    if (!filterConcluded && !filterPending) return sortedPOs;
+
+    return sortedPOs.filter(po => {
+      const status = String(po.status);
+      const isConcluded =
+        status === OrderStatus.COMPLETED ||
+        status === 'aprovado' ||
+        status === 'concluido';
+      const isPending =
+        status === OrderStatus.DRAFT ||
+        status === OrderStatus.ACTIVE ||
+        status === 'pendente_financeiro' ||
+        status === 'pending';
+      return (filterConcluded && isConcluded) || (filterPending && isPending);
+    });
+  }, [sortedPOs, filterConcluded, filterPending]);
+
+  const pageCount = useMemo(
+    () => Math.max(1, Math.ceil(filteredPOs.length / pageSize)),
+    [filteredPOs.length, pageSize]
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [pageSize, filterConcluded, filterPending]);
+
+  const pageItems = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredPOs.slice(start, start + pageSize);
+  }, [filteredPOs, page, pageSize]);
+
+  const pageRangeLabel = useMemo(() => {
+    if (filteredPOs.length === 0) return '0-0 de 0';
+    const start = (page - 1) * pageSize + 1;
+    const end = Math.min(page * pageSize, filteredPOs.length);
+    return `${start}-${end} de ${filteredPOs.length}`;
+  }, [filteredPOs.length, page, pageSize]);
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.supplier_id || Number(formData.total_quantity_mt) <= 0 || Number(formData.unit_price) <= 0) {
+    if (
+      !formData.supplier_id ||
+      Number(formData.total_quantity_mt) <= 0 ||
+      Number(formData.unit_price) <= 0
+    ) {
       toast.error('Dados inválidos. Verifique quantidade, preço e fornecedor.');
       return;
     }
     setSaving(true);
     try {
-          await purchaseOrdersService.create({
-            supplier_id: Number(formData.supplier_id),
-            product: formData.product,
-            total_quantity_mt: Number(formData.total_quantity_mt),
-            unit: formData.unit,
-            unit_price: Number(formData.unit_price),
-            pricing_type: formData.pricing_type,
-            pricing_period: formData.pricing_period,
-            lme_premium: Number(formData.lme_premium),
+      await purchaseOrdersService.create({
+        supplier_id: Number(formData.supplier_id),
+        product: formData.product,
+        total_quantity_mt: Number(formData.total_quantity_mt),
+        unit: formData.unit,
+        unit_price: Number(formData.unit_price),
+        pricing_type: formData.pricing_type,
+        pricing_period: formData.pricing_period,
+        lme_premium: Number(formData.lme_premium),
         premium: Number(formData.premium),
         reference_price: formData.reference_price,
         fixing_deadline: formData.fixing_deadline || undefined,
@@ -145,19 +226,56 @@ export const ComprasPOs = () => {
   return (
     <Page>
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <PageHeader
-          eyebrow="Compras"
-          title="Exposição Passiva (Compras)"
-          description="Ordens de compra em acompanhamento."
-          actions={
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="w-4 h-4" />
-                Nova PO
+        {/* Title bar (Figma BUTTONS 2) */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <h1 className="text-[24px] font-normal leading-[normal] text-foreground truncate">
+                Ordens de compra
+              </h1>
+              <Button
+                type="button"
+                variant="secondary"
+                size="icon"
+                className="h-8 w-8 rounded-[6px] bg-[var(--ui-neutral,#6592b7)] text-white hover:bg-[var(--ui-neutral,#6592b7)]/90"
+                aria-label="Calendário"
+                title="Calendário"
+              >
+                <CalendarDays className="h-4 w-4" />
               </Button>
-            </DialogTrigger>
-          }
-        />
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 text-sm">
+                <label className="flex items-center gap-2">
+                  <Checkbox
+                    checked={filterConcluded}
+                    onCheckedChange={v => setFilterConcluded(Boolean(v))}
+                    className="rounded-[6px] data-[state=checked]:bg-[var(--ui-neutral,#6592b7)] data-[state=checked]:border-[var(--ui-neutral,#6592b7)]"
+                  />
+                  <span className="text-[12px] text-foreground">
+                    Concluídas
+                  </span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <Checkbox
+                    checked={filterPending}
+                    onCheckedChange={v => setFilterPending(Boolean(v))}
+                    className="rounded-[6px] data-[state=checked]:bg-[var(--ui-neutral,#6592b7)] data-[state=checked]:border-[var(--ui-neutral,#6592b7)]"
+                  />
+                  <span className="text-[12px] text-foreground">Pendentes</span>
+                </label>
+              </div>
+
+              <DialogTrigger asChild>
+                <Button className="h-8 rounded-[6px] bg-[var(--primary-orange,#ffa548)] text-white hover:bg-[var(--primary-orange,#ffa548)]/90">
+                  <span>Nova</span>
+                  <ChevronDown className="h-4 w-4 opacity-90" />
+                </Button>
+              </DialogTrigger>
+            </div>
+          </div>
+        </div>
 
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -170,20 +288,22 @@ export const ComprasPOs = () => {
                 <Label htmlFor="supplier-select">Fornecedor *</Label>
                 <Select
                   value={formData.supplier_id}
-                  onValueChange={(value) =>
+                  onValueChange={value =>
                     setFormData({ ...formData, supplier_id: value })
                   }
                   disabled={loadingSuppliers}
                 >
                   <SelectTrigger id="supplier-select">
                     <SelectValue
-                      placeholder={loadingSuppliers ? "Carregando..." : "Selecione"}
+                      placeholder={
+                        loadingSuppliers ? 'Carregando...' : 'Selecione'
+                      }
                     />
                   </SelectTrigger>
                   <SelectContent>
-                    {suppliers.map((s) => (
+                    {suppliers.map(s => (
                       <SelectItem key={s.id} value={String(s.id)}>
-                        {s.name} {s.code ? `(${s.code})` : ""}
+                        {s.name} {s.code ? `(${s.code})` : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -194,7 +314,9 @@ export const ComprasPOs = () => {
                 <Input
                   required
                   value={formData.product}
-                  onChange={(e) => setFormData({ ...formData, product: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, product: e.target.value })
+                  }
                   placeholder="Billets, T-bars..."
                 />
               </div>
@@ -207,7 +329,7 @@ export const ComprasPOs = () => {
                   type="number"
                   required
                   value={formData.total_quantity_mt}
-                  onChange={(e) =>
+                  onChange={e =>
                     setFormData({
                       ...formData,
                       total_quantity_mt: Number(e.target.value),
@@ -220,7 +342,9 @@ export const ComprasPOs = () => {
                 <Label>Unidade</Label>
                 <Input
                   value={formData.unit}
-                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, unit: e.target.value })
+                  }
                   placeholder="MT"
                 />
               </div>
@@ -230,8 +354,11 @@ export const ComprasPOs = () => {
                   type="number"
                   step="0.01"
                   value={formData.unit_price}
-                  onChange={(e) =>
-                    setFormData({ ...formData, unit_price: Number(e.target.value) })
+                  onChange={e =>
+                    setFormData({
+                      ...formData,
+                      unit_price: Number(e.target.value),
+                    })
                   }
                   placeholder="0.00"
                 />
@@ -243,8 +370,11 @@ export const ComprasPOs = () => {
                 <Label htmlFor="pricing-type">Tipo de Precificação</Label>
                 <Select
                   value={formData.pricing_type}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, pricing_type: value as PricingType })
+                  onValueChange={value =>
+                    setFormData({
+                      ...formData,
+                      pricing_type: value as PricingType,
+                    })
                   }
                 >
                   <SelectTrigger id="pricing-type">
@@ -253,8 +383,12 @@ export const ComprasPOs = () => {
                   <SelectContent>
                     <SelectItem value={PricingType.FIXED}>Fixo</SelectItem>
                     <SelectItem value={PricingType.TBF}>TBF</SelectItem>
-                    <SelectItem value={PricingType.MONTHLY_AVERAGE}>Média mensal</SelectItem>
-                    <SelectItem value={PricingType.LME_PREMIUM}>LME + Premium</SelectItem>
+                    <SelectItem value={PricingType.MONTHLY_AVERAGE}>
+                      Média mensal
+                    </SelectItem>
+                    <SelectItem value={PricingType.LME_PREMIUM}>
+                      LME + Premium
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -262,7 +396,7 @@ export const ComprasPOs = () => {
                 <Label>Período</Label>
                 <Input
                   value={formData.pricing_period}
-                  onChange={(e) =>
+                  onChange={e =>
                     setFormData({ ...formData, pricing_period: e.target.value })
                   }
                   placeholder="M+1"
@@ -274,8 +408,11 @@ export const ComprasPOs = () => {
                   type="number"
                   step="0.01"
                   value={formData.lme_premium}
-                  onChange={(e) =>
-                    setFormData({ ...formData, lme_premium: Number(e.target.value) })
+                  onChange={e =>
+                    setFormData({
+                      ...formData,
+                      lme_premium: Number(e.target.value),
+                    })
                   }
                   placeholder="0.00"
                 />
@@ -289,8 +426,11 @@ export const ComprasPOs = () => {
                   type="number"
                   step="0.01"
                   value={formData.premium}
-                  onChange={(e) =>
-                    setFormData({ ...formData, premium: Number(e.target.value) })
+                  onChange={e =>
+                    setFormData({
+                      ...formData,
+                      premium: Number(e.target.value),
+                    })
                   }
                   placeholder="0.00"
                 />
@@ -299,8 +439,11 @@ export const ComprasPOs = () => {
                 <Label>Preço de Referência</Label>
                 <Input
                   value={formData.reference_price}
-                  onChange={(e) =>
-                    setFormData({ ...formData, reference_price: e.target.value })
+                  onChange={e =>
+                    setFormData({
+                      ...formData,
+                      reference_price: e.target.value,
+                    })
                   }
                   placeholder="Referência de preço"
                 />
@@ -310,8 +453,11 @@ export const ComprasPOs = () => {
                 <Input
                   type="date"
                   value={formData.fixing_deadline}
-                  onChange={(e) =>
-                    setFormData({ ...formData, fixing_deadline: e.target.value })
+                  onChange={e =>
+                    setFormData({
+                      ...formData,
+                      fixing_deadline: e.target.value,
+                    })
                   }
                 />
               </div>
@@ -323,7 +469,7 @@ export const ComprasPOs = () => {
                 <Input
                   type="date"
                   value={formData.expected_delivery_date}
-                  onChange={(e) =>
+                  onChange={e =>
                     setFormData({
                       ...formData,
                       expected_delivery_date: e.target.value,
@@ -335,7 +481,7 @@ export const ComprasPOs = () => {
                 <Label>Localização</Label>
                 <Input
                   value={formData.location}
-                  onChange={(e) =>
+                  onChange={e =>
                     setFormData({ ...formData, location: e.target.value })
                   }
                   placeholder="Local de entrega"
@@ -347,8 +493,11 @@ export const ComprasPOs = () => {
                   type="number"
                   step="0.01"
                   value={formData.avg_cost}
-                  onChange={(e) =>
-                    setFormData({ ...formData, avg_cost: Number(e.target.value) })
+                  onChange={e =>
+                    setFormData({
+                      ...formData,
+                      avg_cost: Number(e.target.value),
+                    })
                   }
                   placeholder="0.00"
                 />
@@ -359,7 +508,7 @@ export const ComprasPOs = () => {
               <Label>Notas</Label>
               <Textarea
                 value={formData.notes}
-                onChange={(e) =>
+                onChange={e =>
                   setFormData({ ...formData, notes: e.target.value })
                 }
                 rows={3}
@@ -369,111 +518,225 @@ export const ComprasPOs = () => {
 
             <div className="flex justify-end gap-3">
               <Button type="submit" disabled={saving}>
-                {saving ? "Salvando..." : "Salvar PO"}
+                {saving ? 'Salvando...' : 'Salvar PO'}
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
 
-      <SectionCard>
-        {loadingPOs ? (
-          <div className="text-muted-foreground">Carregando POs...</div>
-        ) : sortedPOs.length === 0 ? (
-          <div className="text-muted-foreground">
-            Nenhuma Purchase Order cadastrada.
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {sortedPOs.map((po) => (
-              <div
-                key={po.id}
-                className="bg-card border rounded-lg p-6 hover:shadow-md transition-shadow"
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="font-semibold">
-                      {po.po_number} - {po.supplier?.name}
-                    </h3>
-                    <p className="text-muted-foreground">
-                      {po.product || "Produto não informado"}
-                    </p>
-                  </div>
-                  <Badge
-                    variant="secondary"
-                    className={statusBadgeClass[po.status] || statusBadgeClass.draft}
-                  >
-                    {statusLabel(po.status)}
-                  </Badge>
-                </div>
+      {/* Table shell (Figma TABLE) */}
+      <div>
+        <FigmaTabs
+          items={[
+            { value: 'main', label: 'Main' },
+            { value: 'related', label: 'Related documents' },
+          ]}
+          value={activeTab}
+          onValueChange={v => setActiveTab(v as 'main' | 'related')}
+          className="mb-0"
+        />
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Quantidade:</span>
-                    <p>
-                      {po.total_quantity_mt.toLocaleString()} {po.unit || "MT"}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Preço Unitário:</span>
-                    <p>
-                      {po.unit_price
-                        ? `US$ ${po.unit_price.toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                          })}`
-                        : "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Total:</span>
-                    <p className="font-medium">
-                      {po.unit_price
-                        ? `US$ ${(po.unit_price * po.total_quantity_mt).toLocaleString(
-                            "en-US",
-                            { minimumFractionDigits: 2 },
-                          )}`
-                        : "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Entrega:</span>
-                    <p>
-                      {po.expected_delivery_date
-                        ? new Date(po.expected_delivery_date).toLocaleDateString()
-                        : "—"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 pt-4 mt-4 border-t">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => openDetails(po)}
-                  >
-                    <Eye className="w-4 h-4" />
-                    Ver detalhes completos
-                  </Button>
-
-                  {po.status === "draft" && (
-                    <Button
-                      size="sm"
-                      onClick={() =>
-                        purchaseOrdersService
-                          .update(po.id, { status: OrderStatus.ACTIVE })
-                          .then(fetchPurchaseOrders)
-                      }
-                    >
-                      <Send className="w-4 h-4" />
-                      Enviar ao Financeiro
-                    </Button>
-                  )}
-                </div>
+        <FigmaSurface className="rounded-tl-none">
+          <div className="p-4">
+            {loadingPOs ? (
+              <div className="text-muted-foreground">Carregando POs...</div>
+            ) : filteredPOs.length === 0 ? (
+              <div className="text-muted-foreground">
+                Nenhuma Purchase Order encontrada.
               </div>
-            ))}
+            ) : (
+              <Table className="text-[14px]">
+                <TableHeader className="bg-card">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="w-10 px-2">
+                      <Checkbox aria-label="Selecionar todos" />
+                    </TableHead>
+                    <TableHead className="text-[12px] font-normal text-foreground">
+                      PO
+                    </TableHead>
+                    <TableHead className="text-[12px] font-normal text-foreground">
+                      Fornecedor
+                    </TableHead>
+                    <TableHead className="text-[12px] font-normal text-foreground">
+                      Produto
+                    </TableHead>
+                    <TableHead className="text-[12px] font-normal text-foreground text-right">
+                      Quantidade
+                    </TableHead>
+                    <TableHead className="text-[12px] font-normal text-foreground text-right">
+                      Total
+                    </TableHead>
+                    <TableHead className="text-[12px] font-normal text-foreground">
+                      Status
+                    </TableHead>
+                    <TableHead className="text-[12px] font-normal text-foreground">
+                      Ações
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pageItems.map((po, idx) => {
+                    const total =
+                      po.unit_price && po.total_quantity_mt
+                        ? po.unit_price * po.total_quantity_mt
+                        : null;
+                    return (
+                      <TableRow
+                        key={po.id}
+                        className={cn(
+                          'h-10',
+                          idx % 2 === 1
+                            ? 'bg-[var(--white-secondary,#f1f2f5)]'
+                            : 'bg-card'
+                        )}
+                      >
+                        <TableCell className="px-2">
+                          <Checkbox aria-label={`Selecionar ${po.po_number}`} />
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {po.po_number}
+                        </TableCell>
+                        <TableCell className="max-w-[260px] truncate">
+                          {po.supplier?.name ?? '—'}
+                        </TableCell>
+                        <TableCell className="max-w-[420px] truncate">
+                          {po.product || '—'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {po.total_quantity_mt?.toLocaleString()}{' '}
+                          {po.unit || 'MT'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {total != null
+                            ? `US$ ${total.toLocaleString('en-US', {
+                                minimumFractionDigits: 2,
+                              })}`
+                            : '—'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="secondary"
+                            className={
+                              statusBadgeClass[po.status] ||
+                              statusBadgeClass.draft
+                            }
+                          >
+                            {statusLabel(po.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <FigmaButton
+                              tone="outline"
+                              className="px-3"
+                              onClick={() => openDetails(po)}
+                            >
+                              <Eye className="h-4 w-4" />
+                              <span>Ver</span>
+                            </FigmaButton>
+                            {po.status === 'draft' && (
+                              <FigmaButton
+                                tone="primary"
+                                className="px-3"
+                                onClick={() =>
+                                  purchaseOrdersService
+                                    .update(po.id, {
+                                      status: OrderStatus.ACTIVE,
+                                    })
+                                    .then(fetchPurchaseOrders)
+                                }
+                              >
+                                <Send className="h-4 w-4" />
+                                <span>Enviar</span>
+                              </FigmaButton>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
           </div>
-        )}
-      </SectionCard>
+
+          {/* Footer (Figma TABLE footer / pagination) */}
+          <div className="flex items-center justify-between gap-4 px-4 pb-4 pt-2">
+            <div className="text-[14px] font-medium text-foreground">
+              {pageRangeLabel}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-[6px]"
+                onClick={() => setPage(1)}
+                disabled={page <= 1}
+                aria-label="Primeira página"
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-[6px]"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                aria-label="Página anterior"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-[6px]"
+                onClick={() => setPage(p => Math.min(pageCount, p + 1))}
+                disabled={page >= pageCount}
+                aria-label="Próxima página"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-[6px]"
+                onClick={() => setPage(pageCount)}
+                disabled={page >= pageCount}
+                aria-label="Última página"
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[14px] font-medium text-foreground">
+                Linhas por página
+              </span>
+              <Select
+                value={String(pageSize)}
+                onValueChange={v => setPageSize(Number(v))}
+              >
+                <SelectTrigger className="h-8 w-[90px] rounded-[6px] shadow-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[10, 20, 50].map(n => (
+                    <SelectItem key={n} value={String(n)}>
+                      {n}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </FigmaSurface>
+      </div>
 
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -492,7 +755,8 @@ export const ComprasPOs = () => {
                   <Badge
                     variant="secondary"
                     className={
-                      statusBadgeClass[selectedPO.status] || statusBadgeClass.draft
+                      statusBadgeClass[selectedPO.status] ||
+                      statusBadgeClass.draft
                     }
                   >
                     {statusLabel(selectedPO.status)}
@@ -500,24 +764,47 @@ export const ComprasPOs = () => {
                 </div>
 
                 <div className="space-y-3 border-t pt-4">
-                  <h3 className="text-muted-foreground">Informações do Fornecedor</h3>
+                  <h3 className="text-muted-foreground">
+                    Informações do Fornecedor
+                  </h3>
                   <div className="grid md:grid-cols-2 gap-4 text-sm">
-                    <Info label="Fornecedor" value={selectedPO.supplier?.name} />
+                    <Info
+                      label="Fornecedor"
+                      value={selectedPO.supplier?.name}
+                    />
                     <Info label="Produto" value={selectedPO.product} />
                     <Info
                       label="Quantidade"
-                      value={`${selectedPO.total_quantity_mt} ${selectedPO.unit || ""}`}
+                      value={`${selectedPO.total_quantity_mt} ${
+                        selectedPO.unit || ''
+                      }`}
                     />
                     <Info
                       label="Preço Unitário"
-                      value={selectedPO.unit_price ? `US$ ${selectedPO.unit_price}` : "—"}
+                      value={
+                        selectedPO.unit_price
+                          ? `US$ ${selectedPO.unit_price}`
+                          : '—'
+                      }
                     />
                     <Info label="Tipo" value={selectedPO.pricing_type} />
                     <Info label="Período" value={selectedPO.pricing_period} />
-                    <Info label="Premium" value={selectedPO.premium ?? selectedPO.lme_premium} />
-                    <Info label="Ref. preço" value={selectedPO.reference_price} />
-                    <Info label="Fixing até" value={selectedPO.fixing_deadline} />
-                    <Info label="Entrega prevista" value={selectedPO.expected_delivery_date} />
+                    <Info
+                      label="Premium"
+                      value={selectedPO.premium ?? selectedPO.lme_premium}
+                    />
+                    <Info
+                      label="Ref. preço"
+                      value={selectedPO.reference_price}
+                    />
+                    <Info
+                      label="Fixing até"
+                      value={selectedPO.fixing_deadline}
+                    />
+                    <Info
+                      label="Entrega prevista"
+                      value={selectedPO.expected_delivery_date}
+                    />
                     <Info label="Localização" value={selectedPO.location} />
                     <Info label="Custo médio" value={selectedPO.avg_cost} />
                     <Info label="Notas" value={selectedPO.notes} />
@@ -532,7 +819,13 @@ export const ComprasPOs = () => {
   );
 };
 
-const Info = ({ label, value }: { label: string; value?: string | number | null }) => (
+const Info = ({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string | number | null;
+}) => (
   <div>
     <p className="text-xs text-muted-foreground">{label}</p>
     <p className="text-sm text-foreground">{value ?? '—'}</p>

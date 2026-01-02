@@ -24,6 +24,7 @@ import { exposuresService } from '../services/exposuresService';
 
 // Importar dados mockados como fallback
 import mockData from './mockData';
+import { useAuth } from './AuthContext';
 
 interface DataContextType {
   // Purchase Orders
@@ -80,6 +81,7 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Verificar modo mock da variável de ambiente
   const useMock = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   // States
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
@@ -294,6 +296,35 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Carregar dados na inicialização
   useEffect(() => {
+    // In mock mode, load immediately.
+    if (useMock) {
+      fetchPurchaseOrders();
+      fetchSalesOrders();
+      fetchSuppliers();
+      fetchCustomers();
+      fetchCounterparties();
+      fetchRfqs();
+      fetchHedges();
+      fetchLocations();
+      fetchExposures();
+      return;
+    }
+
+    // In real API mode, only fetch after authentication to avoid 401 spam.
+    if (authLoading) return;
+    if (!isAuthenticated) {
+      setLoadingPOs(false);
+      setLoadingSOs(false);
+      setLoadingSuppliers(false);
+      setLoadingCustomers(false);
+      setLoadingCounterparties(false);
+      setLoadingRfqs(false);
+      setLoadingHedges(false);
+      setLoadingLocations(false);
+      setLoadingExposures(false);
+      return;
+    }
+
     fetchPurchaseOrders();
     fetchSalesOrders();
     fetchSuppliers();
@@ -303,7 +334,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     fetchHedges();
     fetchLocations();
     fetchExposures();
-  }, []);
+  }, [useMock, isAuthenticated, authLoading]);
 
   return (
     <DataContext.Provider

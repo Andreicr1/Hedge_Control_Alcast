@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.routes import auth, purchase_orders, sales_orders, suppliers, customers, counterparties, rfqs, hedges, locations, health, rfq_preview, exposures, hedge_tasks, hedge_manual, exposure_links, net_exposure, mtm_snapshot, market_data, mtm, rfq_ingest, whatsapp_webhook, deals, whatsapp_business, contracts
+from app.api.routes import auth, purchase_orders, sales_orders, suppliers, customers, counterparties, rfqs, hedges, locations, health, rfq_preview, exposures, hedge_tasks, hedge_manual, exposure_links, net_exposure, mtm_snapshot, market_data, mtm, rfq_ingest, whatsapp_webhook, deals, whatsapp_business, contracts, market_aluminum, settlements, lme_public, westmetall
 
 api_router = APIRouter()
 api_router.include_router(health.router)
@@ -23,7 +23,11 @@ api_router.include_router(exposure_links.router)
 api_router.include_router(net_exposure.router)
 api_router.include_router(mtm_snapshot.router)
 api_router.include_router(market_data.router)
+api_router.include_router(market_aluminum.router)
+api_router.include_router(lme_public.router)
+api_router.include_router(westmetall.router)
 api_router.include_router(mtm.router)
 api_router.include_router(deals.router)
 api_router.include_router(whatsapp_business.router)
 api_router.include_router(contracts.router)
+api_router.include_router(settlements.router)

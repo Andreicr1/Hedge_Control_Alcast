@@ -33,11 +33,11 @@ import { VendasSOs } from './pages/vendas/SOs';
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div className="flex flex-col h-screen">
-      <Header />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto bg-background">{children}</main>
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Header />
+        <main className="min-w-0 flex-1 overflow-y-auto bg-background">{children}</main>
       </div>
     </div>
   );
@@ -94,7 +94,7 @@ const AppRoutes = () => {
           isAuthenticated ? <Navigate to={defaultRouteByRole(user?.role?.name)} replace /> : <Signup />
         }
       />
-      
+
       <Route
         path="/financeiro/dashboard"
         element={renderProtected(<FinanceiroDashboard />, [RoleName.FINANCEIRO, RoleName.ADMIN])}

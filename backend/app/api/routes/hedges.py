@@ -45,6 +45,7 @@ def create_hedge(
         current_market_price=payload.current_market_price,
         mtm_value=payload.mtm_value,
         period=payload.period,
+        maturity_date=getattr(payload, "maturity_date", None),
         status=payload.status,
     )
     db.add(hedge)
